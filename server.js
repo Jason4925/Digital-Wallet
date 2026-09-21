@@ -797,7 +797,19 @@ const existing = JSON.parse(await fs.readFile(dataPath, "utf8"));
 const canonical = migrateToVersion2(existing);
 if (JSON.stringify(existing) !== JSON.stringify(canonical)) await writeData(canonical);
 
-const vite = await createViteServer({ server: { middlewareMode: true, hmr: false }, appType: "spa" });
+const allowedHosts = [
+  "localhost",
+  process.env.RENDER_EXTERNAL_HOSTNAME
+].filter(Boolean);
+
+const vite = await createViteServer({
+  server: {
+    middlewareMode: true,
+    hmr: false,
+    allowedHosts
+  },
+  appType: "spa"
+});
 const server = createServer(async (request, response) => {
   try {
     const requestUrl = new URL(request.url, `http://${request.headers.host || "localhost"}`);
