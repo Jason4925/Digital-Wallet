@@ -1,0 +1,367 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>My Wallet — Digital Wallet Simulator</title>
+  <meta name="description" content="Educational digital wallet simulator using one local JSON data file." />
+  <link rel="stylesheet" href="/css/style.css" />
+  <link rel="stylesheet" href="/css/user.css" />
+</head>
+<body class="app-page">
+  <div class="simulation-banner"><strong>SIMULATION MODE</strong><span>No real money or real payment gateway is used.</span></div>
+  <div class="app-layout">
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-top">
+        <a class="brand sidebar-brand" href="/user.html"><span class="brand-mark">◈</span><span>Digital Wallet</span></a>
+        <button class="icon-btn mobile-close" id="close-sidebar" aria-label="Close menu">×</button>
+      </div>
+      <nav class="sidebar-nav">
+        <button class="nav-item active" data-section="dashboard">🏠 <span>Dashboard</span></button>
+        <button class="nav-item" data-section="send">💸 <span>Send Money</span></button>
+        <button class="nav-item" data-section="receive">📥 <span>Receive</span></button>
+        <button class="nav-item" data-section="scan">📷 <span>Scan QR</span></button>
+        <button class="nav-item" data-section="transactions">📜 <span>Transactions</span></button>
+        <button class="nav-item" data-section="analytics">📊 <span>Analytics</span></button>
+        <button class="nav-item" data-section="budget">🎯 <span>Budget</span></button>
+        <button class="nav-item" data-section="contacts">👥 <span>Contacts</span></button>
+        <button class="nav-item" data-section="recurring">🔄 <span>Recurring</span></button>
+        <button class="nav-item" data-section="notifications">🔔 <span>Notifications</span><b id="notification-count" class="nav-badge hidden">0</b></button>
+        <button class="nav-item" data-section="profile">👤 <span>Profile & Settings</span></button>
+      </nav>
+      <div class="sidebar-bottom">
+        <div class="wallet-mini">
+          <span class="avatar" id="sidebar-avatar">U</span>
+          <div><strong id="sidebar-name">User</strong><small id="sidebar-wallet-id">Wallet</small></div>
+        </div>
+        <button class="nav-item logout-item" id="logout-btn">🚪 <span>Logout</span></button>
+      </div>
+    </aside>
+
+    <main class="app-main">
+      <header class="app-header">
+        <button class="icon-btn menu-trigger" id="open-sidebar" aria-label="Open menu">☰</button>
+        <div><span class="eyebrow" id="page-eyebrow">MY WALLET</span><h1 id="page-title">Dashboard</h1></div>
+        <div class="header-actions">
+          <button class="icon-btn" data-section-jump="notifications" title="Notifications" aria-label="Notifications">🔔</button>
+          <button class="user-pill" data-section-jump="profile">
+            <span class="avatar" id="header-avatar">U</span>
+            <span id="header-name">User</span>
+          </button>
+        </div>
+      </header>
+
+      <div id="toast-container" class="toast-container"></div>
+
+      <section class="view-section active" id="section-dashboard">
+        <div class="dashboard-grid">
+          <article class="balance-card">
+            <div class="card-top"><span>Total Balance</span><span class="live-pill">● Simulated</span></div>
+            <div class="big-balance" id="balance-value">₹0.00</div>
+            <div class="wallet-id-line">Wallet ID <strong id="dashboard-wallet-id">—</strong><button class="text-btn" id="copy-wallet-id">Copy</button></div>
+            <div class="balance-actions">
+              <button class="btn btn-light" id="deposit-btn">➕ Deposit</button>
+              <button class="btn btn-light" id="withdraw-btn">➖ Withdraw</button>
+              <button class="btn btn-light" data-section-jump="send">💸 Send</button>
+              <button class="btn btn-light" data-section-jump="receive">📥 Receive</button>
+              <button class="btn btn-light" data-section-jump="scan">📷 Scan</button>
+            </div>
+          </article>
+          <article class="stat-card"><span>Income</span><strong id="income-value">₹0.00</strong><small>All received funds</small></article>
+          <article class="stat-card"><span>Expenses</span><strong id="expense-value">₹0.00</strong><small>All outgoing funds</small></article>
+          <article class="stat-card"><span>Transactions</span><strong id="transaction-count">0</strong><small>Total activity</small></article>
+        </div>
+
+        <div class="two-panel">
+          <article class="panel-card">
+            <div class="panel-head"><div><span class="eyebrow">RECENT ACTIVITY</span><h2>Recent transactions</h2></div><button class="text-btn" data-section-jump="transactions">View all →</button></div>
+            <div id="recent-transactions" class="transaction-list empty-state">No transactions yet.</div>
+          </article>
+          <article class="panel-card">
+            <div class="panel-head"><div><span class="eyebrow">SPENDING</span><h2>This month</h2></div><button class="text-btn" data-section-jump="analytics">Open analytics →</button></div>
+            <div class="mini-chart-wrap"><canvas id="mini-category-chart"></canvas></div>
+          </article>
+        </div>
+      </section>
+
+      <section class="view-section" id="section-send">
+        <div class="section-title"><div><span class="eyebrow">WALLET OPERATION</span><h2>Send money</h2><p>Transfer simulated funds to another registered wallet. A PIN is required for every transfer.</p></div></div>
+        <div class="form-panel">
+          <form id="transfer-form" class="form-grid two-col">
+            <label>Recipient wallet ID<input id="transfer-recipient" required maxlength="13" placeholder="DW-XXXXXXXXXX" /></label>
+            <label>Amount<input id="transfer-amount" type="number" min="0.01" max="1000000000" step="0.01" required placeholder="500" /></label>
+            <label>Category<select id="transfer-category"></select></label>
+            <label>Note<input id="transfer-note" maxlength="120" placeholder="Lunch, rent, gift..." /></label>
+            <div class="quick-contacts span-2" id="quick-contacts"></div>
+            <div id="transfer-message" class="form-message hidden span-2"></div>
+            <button class="btn btn-primary btn-lg span-2" type="submit">Continue to confirmation</button>
+          </form>
+        </div>
+      </section>
+
+      <section class="view-section" id="section-receive">
+        <div class="section-title"><div><span class="eyebrow">RECEIVE</span><h2>My QR & wallet ID</h2><p>Share your verified wallet identity for simulated payments.</p></div></div>
+        <div class="receive-grid">
+          <article class="panel-card qr-card">
+            <div id="my-qr-wrap" class="qr-wrap"><canvas id="my-qr"></canvas></div>
+            <h3 id="receive-wallet-id">—</h3>
+            <p id="receive-name">—</p>
+            <div class="inline-actions"><button class="btn btn-primary" id="download-qr">Download QR</button><button class="btn btn-outline" id="share-qr">Share</button></div>
+          </article>
+          <article class="form-panel">
+            <h3>Create a payment request</h3>
+            <p class="muted">Generate a QR payload containing your wallet ID and an optional requested amount.</p>
+            <form id="request-form" class="form-grid">
+              <label>Requested amount<input id="request-amount" type="number" min="0" max="1000000000" step="0.01" placeholder="Optional" /></label>
+              <label>Note<input id="request-note" maxlength="100" placeholder="e.g. Dinner split" /></label>
+              <button class="btn btn-secondary" type="submit">Generate Request QR</button>
+            </form>
+            <div id="request-qr-output" class="request-qr-output hidden"><canvas id="request-qr"></canvas><code id="request-payload"></code></div>
+          </article>
+        </div>
+      </section>
+
+      <section class="view-section" id="section-scan">
+        <div class="section-title"><div><span class="eyebrow">QR PAYMENT</span><h2>Scan a payment QR</h2><p>Use your device camera or paste a QR payload. The recipient is verified before payment.</p></div></div>
+        <div class="scan-grid">
+          <article class="panel-card">
+            <div id="qr-reader" class="qr-reader"></div>
+            <button class="btn btn-outline full-width" id="stop-scanner">Stop camera</button>
+          </article>
+          <article class="form-panel">
+            <h3>Payment details</h3>
+            <label>QR payload<textarea id="qr-payload-input" rows="5" maxlength="2000" placeholder='{"app":"digital-wallet","version":2,"wallet_id":"DW-..."}'></textarea></label>
+            <button class="btn btn-secondary full-width" id="parse-qr-btn">Parse & Verify QR</button>
+            <div id="parsed-qr" class="parsed-qr hidden"></div>
+          </article>
+        </div>
+      </section>
+
+      <section class="view-section" id="section-transactions">
+        <div class="section-title"><div><span class="eyebrow">HISTORY</span><h2>Transactions</h2><p>Search, filter, date-range, sort and export your wallet activity.</p></div><button class="btn btn-outline" id="export-transactions">Export CSV</button></div>
+        <div class="filter-bar">
+          <input id="transaction-search" maxlength="120" placeholder="Search recipient, note, wallet ID or reference..." />
+          <select id="transaction-filter"><option value="all">All types</option><option value="income">Income</option><option value="expense">Expense</option></select>
+          <select id="transaction-category-filter"><option value="all">All categories</option></select>
+          <select id="transaction-sort"><option value="newest">Newest first</option><option value="oldest">Oldest first</option><option value="amount-desc">Amount high → low</option><option value="amount-asc">Amount low → high</option></select>
+          <label>From<input id="transaction-from" type="date" /></label>
+          <label>To<input id="transaction-to" type="date" /></label>
+        </div>
+        <div class="panel-card"><div id="all-transactions" class="transaction-table-wrap"></div></div>
+      </section>
+
+      <section class="view-section" id="section-analytics">
+        <div class="section-title"><div><span class="eyebrow">INSIGHTS</span><h2>Analytics & reports</h2><p>Understand where simulated funds are coming from and going.</p></div></div>
+        <div class="analytics-summary">
+          <article class="stat-card"><span>Current balance</span><strong id="analytics-balance">₹0.00</strong><small>Available simulated funds</small></article>
+          <article class="stat-card"><span>Net this month</span><strong id="analytics-net">₹0.00</strong><small>Income minus expenses</small></article>
+          <article class="stat-card"><span>Largest expense</span><strong id="analytics-largest">₹0.00</strong><small id="analytics-largest-label">No expense yet</small></article>
+          <article class="stat-card"><span>Top category</span><strong id="analytics-top-category">—</strong><small id="analytics-top-category-value">No expense yet</small></article>
+        </div>
+        <div class="analytics-grid">
+          <article class="panel-card chart-card"><div class="panel-head"><div><span class="eyebrow">MONTHLY</span><h3>Income vs expenses</h3></div></div><canvas id="monthly-chart" height="280"></canvas></article>
+          <article class="panel-card chart-card"><div class="panel-head"><div><span class="eyebrow">CATEGORIES</span><h3>Expense breakdown</h3></div></div><canvas id="category-chart" height="280"></canvas></article>
+          <article class="panel-card chart-card wide-chart"><div class="panel-head"><div><span class="eyebrow">TOP PAYEES</span><h3>Top recipients</h3></div></div><canvas id="payee-chart" height="250"></canvas></article>
+        </div>
+      </section>
+
+      <section class="view-section" id="section-budget">
+        <div class="section-title"><div><span class="eyebrow">PLANNING</span><h2>Budgets</h2><p>Set monthly category limits and track remaining funds and warning levels.</p></div></div>
+        <div class="two-panel">
+          <div class="form-panel">
+            <h3>Add monthly budget</h3>
+            <form id="budget-form" class="form-grid">
+              <label>Category<select id="budget-category"></select></label>
+              <label>Monthly limit<input id="budget-amount" type="number" min="0.01" max="1000000000" step="0.01" required placeholder="5000" /></label>
+              <button class="btn btn-primary" type="submit">Save Budget</button>
+            </form>
+          </div>
+          <article class="panel-card"><div class="panel-head"><div><span class="eyebrow">CURRENT MONTH</span><h2>Budget progress</h2></div></div><div id="budget-list" class="budget-list empty-state">No budgets yet.</div></article>
+        </div>
+      </section>
+
+      <section class="view-section" id="section-contacts">
+        <div class="section-title"><div><span class="eyebrow">RECIPIENTS</span><h2>Contacts</h2><p>Save registered wallet users for quick transfers.</p></div></div>
+        <div class="two-panel">
+          <div class="form-panel">
+            <h3>Add contact</h3>
+            <form id="contact-form" class="form-grid">
+              <label>Wallet ID<input id="contact-wallet-id" required maxlength="13" placeholder="DW-XXXXXXXXXX" /></label>
+              <label>Nickname<input id="contact-nickname" maxlength="40" placeholder="Rahul" /></label>
+              <button class="btn btn-primary" type="submit">Add Contact</button>
+            </form>
+            <div id="contact-message" class="form-message hidden"></div>
+          </div>
+          <article class="panel-card"><div class="panel-head"><div><span class="eyebrow">SAVED</span><h2>Your contacts</h2></div></div><div id="contacts-list" class="contact-list empty-state">No contacts yet.</div></article>
+        </div>
+      </section>
+
+      <section class="view-section" id="section-recurring">
+        <div class="section-title"><div><span class="eyebrow">AUTOMATION SIMULATION</span><h2>Recurring payments</h2><p>Create recurring items and manually run them for simulation. Every run requires your wallet PIN.</p></div></div>
+        <div class="two-panel">
+          <div class="form-panel">
+            <h3>Add recurring payment</h3>
+            <form id="recurring-form" class="form-grid">
+              <label>Title<input id="recurring-title" required maxlength="80" placeholder="Internet" /></label>
+              <label>Amount<input id="recurring-amount" type="number" min="0.01" max="1000000000" step="0.01" required placeholder="799" /></label>
+              <label>Frequency<select id="recurring-frequency"><option value="monthly">Monthly</option><option value="weekly">Weekly</option></select></label>
+              <label>Category<select id="recurring-category"></select></label>
+              <button class="btn btn-primary" type="submit">Add Recurring Payment</button>
+            </form>
+          </div>
+          <article class="panel-card"><div class="panel-head"><div><span class="eyebrow">SCHEDULED</span><h2>Your recurring payments</h2></div></div><div id="recurring-list" class="recurring-list empty-state">No recurring payments yet.</div></article>
+        </div>
+      </section>
+
+      <section class="view-section" id="section-notifications">
+        <div class="section-title"><div><span class="eyebrow">UPDATES</span><h2>Notifications</h2><p>Payment, budget and account updates.</p></div><button class="btn btn-outline" id="mark-all-read">Mark all read</button></div>
+        <div class="panel-card"><div id="notifications-list" class="notification-list empty-state">No notifications yet.</div></div>
+      </section>
+
+      <section class="view-section" id="section-profile">
+        <div class="section-title"><div><span class="eyebrow">ACCOUNT</span><h2>Profile & settings</h2><p>Manage your personal details, wallet PIN, preferences and account lifecycle.</p></div></div>
+        <div class="profile-grid">
+          <div class="form-panel">
+            <h3>Profile</h3>
+            <form id="profile-form" class="form-grid">
+              <label>Full name<input id="profile-name" maxlength="80" required /></label>
+              <label>Phone<input id="profile-phone" maxlength="25" /></label>
+              <label>Wallet ID<input id="profile-wallet-id" disabled /></label>
+              <button class="btn btn-primary" type="submit">Save Profile</button>
+            </form>
+          </div>
+          <div class="form-panel">
+            <h3>Wallet security</h3>
+            <p id="pin-status" class="muted">Checking wallet PIN status…</p>
+            <form id="pin-form" class="form-grid">
+              <label id="old-pin-label">Current PIN<input id="old-pin" type="password" inputmode="numeric" maxlength="4" pattern="[0-9]{4}" /></label>
+              <label>New PIN<input id="new-pin" type="password" inputmode="numeric" maxlength="4" pattern="[0-9]{4}" required /></label>
+              <label>Confirm new PIN<input id="confirm-pin" type="password" inputmode="numeric" maxlength="4" pattern="[0-9]{4}" required /></label>
+              <button class="btn btn-secondary" type="submit">Update Wallet PIN</button>
+            </form>
+            <div id="pin-message" class="form-message hidden"></div>
+            <div id="pin-recovery" class="security-recovery hidden">
+              <h4>PIN recovery</h4>
+              <p class="muted">Your PIN is locked. Use the account password to reset the wallet PIN.</p>
+              <form id="pin-recovery-form" class="form-grid">
+                <label>Account password<input id="recovery-password" type="password" autocomplete="current-password" required /></label>
+                <label>New PIN<input id="recovery-pin" type="password" inputmode="numeric" maxlength="4" pattern="[0-9]{4}" required /></label>
+                <label>Confirm new PIN<input id="recovery-pin-confirm" type="password" inputmode="numeric" maxlength="4" pattern="[0-9]{4}" required /></label>
+                <button class="btn btn-outline" type="submit">Reset Wallet PIN</button>
+              </form>
+              <div id="pin-recovery-message" class="form-message hidden"></div>
+            </div>
+          </div>
+          <div class="form-panel">
+            <h3>Preferences</h3>
+            <div class="setting-row"><span>Dark mode</span><button class="switch" id="theme-toggle" aria-label="Toggle dark mode"><span></span></button></div>
+            <div class="setting-row"><span>Currency</span><strong>INR (₹)</strong></div>
+            <div class="setting-row"><span>Notifications</span><strong>Enabled</strong></div>
+            <div class="setting-row"><span>Session</span><button class="text-btn" id="signout-everywhere">Sign out</button></div>
+          </div>
+          <div class="form-panel danger-panel">
+            <h3>Account actions</h3>
+            <p class="muted">These actions are for the local simulator and affect the records stored in <code>data.json</code>.</p>
+            <div class="danger-actions">
+              <button class="btn btn-outline" id="reset-simulation-btn">Reset My Simulation</button>
+              <button class="btn btn-danger" id="delete-account-btn">Delete Account</button>
+            </div>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <div class="modal-backdrop hidden" id="confirm-modal">
+    <div class="modal">
+      <button class="icon-btn modal-close" data-close-modal>×</button>
+      <div class="eyebrow">CONFIRM TRANSFER</div>
+      <h2>Review payment</h2>
+      <div id="transfer-preview" class="transfer-preview"></div>
+      <div class="modal-actions"><button class="btn btn-outline" data-close-modal>Cancel</button><button class="btn btn-primary" id="confirm-transfer">Continue to PIN</button></div>
+    </div>
+  </div>
+
+  <div class="modal-backdrop hidden" id="transaction-pin-modal">
+    <div class="modal modal-small">
+      <button class="icon-btn modal-close" data-close-modal>×</button>
+      <div class="eyebrow">TRANSACTION AUTHORIZATION</div>
+      <h2 id="transaction-pin-title">Enter your wallet PIN</h2>
+      <p id="transaction-pin-text" class="muted">Your 4-digit PIN is required for every money-moving transaction.</p>
+      <div id="transaction-pin-summary" class="pin-summary"></div>
+      <form id="transaction-pin-form" class="form-grid">
+        <label>Wallet PIN<input id="transaction-pin" type="password" inputmode="numeric" maxlength="4" pattern="[0-9]{4}" autocomplete="one-time-code" required autofocus /></label>
+        <div id="transaction-pin-message" class="form-message hidden"></div>
+        <button class="btn btn-primary" type="submit" id="transaction-pin-submit">Authorize transaction</button>
+      </form>
+    </div>
+  </div>
+
+  <div class="modal-backdrop hidden" id="pin-modal">
+    <div class="modal modal-small">
+      <div class="eyebrow">WALLET UNLOCK</div>
+      <h2>Enter your 4-digit PIN</h2>
+      <p class="muted">Unlock the wallet to open your session. Transactions still ask for the PIN again.</p>
+      <form id="unlock-form" class="form-grid">
+        <label>Wallet PIN<input id="unlock-pin" type="password" inputmode="numeric" maxlength="4" pattern="[0-9]{4}" required autofocus /></label>
+        <div id="unlock-message" class="form-message hidden"></div>
+        <button class="btn btn-primary" type="submit">Unlock Wallet</button>
+      </form>
+    </div>
+  </div>
+
+  <div class="modal-backdrop hidden" id="cash-modal">
+    <div class="modal modal-small">
+      <button class="icon-btn modal-close" data-close-modal>×</button>
+      <div class="eyebrow" id="cash-modal-eyebrow">WALLET OPERATION</div>
+      <h2 id="cash-modal-title">Deposit</h2>
+      <form id="cash-form" class="form-grid">
+        <label>Amount<input id="cash-amount" type="number" min="0.01" max="1000000000" step="0.01" required placeholder="1000" /></label>
+        <label>Category<select id="cash-category"></select></label>
+        <label>Note<input id="cash-note" maxlength="120" placeholder="Optional note" /></label>
+        <div id="cash-message" class="form-message hidden"></div>
+        <button class="btn btn-primary" type="submit" id="cash-submit">Continue to PIN</button>
+      </form>
+    </div>
+  </div>
+
+  <div class="modal-backdrop hidden" id="reset-simulation-modal">
+    <div class="modal modal-small">
+      <button class="icon-btn modal-close" data-close-modal>×</button>
+      <div class="eyebrow">DESTRUCTIVE ACTION</div>
+      <h2>Reset my simulation?</h2>
+      <p class="muted">This sets your balance to ₹0 and removes your transactions, contacts, budgets, recurring payments and notifications. Your account and profile stay.</p>
+      <form id="reset-simulation-form" class="form-grid">
+        <label>Account password<input id="reset-password" type="password" autocomplete="current-password" required /></label>
+        <label>Type RESET to confirm<input id="reset-confirm-text" required autocomplete="off" /></label>
+        <div id="reset-simulation-message" class="form-message hidden"></div>
+        <div class="modal-actions"><button class="btn btn-outline" data-close-modal type="button">Cancel</button><button class="btn btn-danger" type="submit">Reset Simulation</button></div>
+      </form>
+    </div>
+  </div>
+
+  <div class="modal-backdrop hidden" id="delete-account-modal">
+    <div class="modal modal-small">
+      <button class="icon-btn modal-close" data-close-modal>×</button>
+      <div class="eyebrow">PERMANENT ACTION</div>
+      <h2>Delete wallet account?</h2>
+      <p class="muted">This permanently removes your account and all related records from <code>data.json</code>.</p>
+      <form id="delete-account-form" class="form-grid">
+        <label>Account password<input id="delete-password" type="password" autocomplete="current-password" required /></label>
+        <div id="delete-account-message" class="form-message hidden"></div>
+        <div class="modal-actions"><button class="btn btn-outline" data-close-modal type="button">Cancel</button><button class="btn btn-danger" type="submit">Delete Account</button></div>
+      </form>
+    </div>
+  </div>
+
+  <div class="modal-backdrop hidden" id="receipt-modal">
+    <div class="modal receipt-modal">
+      <button class="icon-btn modal-close no-print" data-close-modal>×</button>
+      <div id="receipt-content"></div>
+      <div class="modal-actions no-print"><button class="btn btn-outline" data-close-modal>Close</button><button class="btn btn-primary" id="print-receipt">Print / Save PDF</button></div>
+    </div>
+  </div>
+
+  <script type="module" src="/js/user.js"></script>
+</body>
+</html>

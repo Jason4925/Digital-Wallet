@@ -1,0 +1,128 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Digital Wallet Simulator</title>
+  <meta name="description" content="A modern educational digital wallet simulator using one local data.json file." />
+  <link rel="stylesheet" href="/css/style.css" />
+  <link rel="stylesheet" href="/css/home.css" />
+</head>
+<body>
+  <div class="simulation-banner"><strong>SIMULATION MODE</strong><span>No real money, banking connection or payment gateway.</span></div>
+  <header class="site-header">
+    <a class="brand" href="/">
+      <span class="brand-mark">◈</span>
+      <span>Digital Wallet</span>
+    </a>
+    <nav class="top-nav">
+      <a href="#features">Features</a>
+      <a href="#how-it-works">How it works</a>
+      <a href="#about">About</a>
+      <a class="btn btn-ghost" href="/login.html">Login</a>
+      <a class="btn btn-primary" href="/register.html">Create Account</a>
+    </nav>
+  </header>
+
+  <main>
+    <section class="hero container">
+      <div class="hero-copy">
+        <div class="eyebrow">DIGITAL WALLET SIMULATOR</div>
+        <h1>Learn digital wallet flows with a safe, local simulation.</h1>
+        <p>
+          Create a wallet, deposit and withdraw simulated funds, transfer money between users,
+          pay with verified QR codes, protect every transaction with a PIN, track activity and understand spending.
+        </p>
+        <div class="hero-actions">
+          <a class="btn btn-primary btn-lg" href="/register.html">Get Started
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+          </a>
+          <a class="btn btn-outline btn-lg" href="#features">Learn More</a>
+        </div>
+        <div class="hero-meta">
+          <span>✓ One data file: data.json</span>
+          <span>✓ PIN on every transaction</span>
+          <span>✓ No real money involved</span>
+        </div>
+      </div>
+      <div class="hero-card">
+        <div class="mini-card-head">
+          <span>Total Balance</span>
+          <span class="status-dot">●</span>
+        </div>
+        <div class="hero-balance">₹24,850.00</div>
+        <div class="mini-grid">
+          <div><span>Income</span><strong>₹32,500</strong></div>
+          <div><span>Expenses</span><strong>₹7,650</strong></div>
+        </div>
+        <div class="spark-bars" aria-hidden="true">
+          <i style="height: 40%"></i><i style="height: 56%"></i><i style="height: 48%"></i>
+          <i style="height: 73%"></i><i style="height: 64%"></i><i style="height: 88%"></i>
+          <i style="height: 78%"></i><i style="height: 96%"></i><i style="height: 68%"></i>
+          <i style="height: 84%"></i><i style="height: 72%"></i><i style="height: 92%"></i>
+        </div>
+        <div class="demo-transaction">
+          <div>
+            <span class="avatar">R</span>
+            <div><strong>Restaurant</strong><small>Food · TXN reference</small></div>
+          </div>
+          <strong class="negative">-₹500</strong>
+        </div>
+      </div>
+    </section>
+
+    <section id="features" class="section container">
+      <div class="section-heading">
+        <div class="eyebrow">FEATURES</div>
+        <h2>A complete educational wallet flow without real payments.</h2>
+        <p>Built around a single JSON data file, server-side validation, transaction authorization and useful reporting tools.</p>
+      </div>
+      <div class="feature-grid">
+        <article class="feature-card"><span>💰</span><h3>Wallet</h3><p>Balance, simulated deposits, withdrawals and wallet activity.</p></article>
+        <article class="feature-card"><span>↔</span><h3>Transfers</h3><p>Send simulated funds to verified registered wallet users.</p></article>
+        <article class="feature-card"><span>▦</span><h3>QR Payments</h3><p>Generate and validate versioned QR payment payloads before review.</p></article>
+        <article class="feature-card"><span>🔐</span><h3>PIN Security</h3><p>A 4-digit PIN is required for every money-moving transaction.</p></article>
+        <article class="feature-card"><span>📜</span><h3>Transactions</h3><p>Search, filter, sort, date-range and export transaction history.</p></article>
+        <article class="feature-card"><span>📊</span><h3>Analytics</h3><p>Track monthly income, expenses, net flow, categories and top recipients.</p></article>
+        <article class="feature-card"><span>🎯</span><h3>Budgets</h3><p>Set category limits with remaining-balance and warning indicators.</p></article>
+        <article class="feature-card"><span>👥</span><h3>Contacts</h3><p>Save verified recipients and mark frequent recipients as favorites.</p></article>
+        <article class="feature-card"><span>🔄</span><h3>Recurring Payments</h3><p>Create recurring entries and run them manually with transaction PIN authorization.</p></article>
+      </div>
+    </section>
+
+    <section id="how-it-works" class="section section-soft">
+      <div class="container">
+        <div class="section-heading">
+          <div class="eyebrow">HOW IT WORKS</div>
+          <h2>Four simple steps.</h2>
+        </div>
+        <div class="steps">
+          <div class="step"><span>01</span><h3>Create account</h3><p>Create a local wallet profile with an invented email-style login ID.</p></div>
+          <div class="step"><span>02</span><h3>Set wallet PIN</h3><p>Configure a separate 4-digit wallet PIN and unlock the wallet session.</p></div>
+          <div class="step"><span>03</span><h3>Move simulated funds</h3><p>Deposit, withdraw, transfer and review QR payments. Every transaction needs the PIN.</p></div>
+          <div class="step"><span>04</span><h3>Track & learn</h3><p>Use analytics, budgets, receipts, exports and history to inspect the simulation.</p></div>
+        </div>
+      </div>
+    </section>
+
+    <section id="about" class="section container about-section">
+      <div>
+        <div class="eyebrow">ABOUT THE PROJECT</div>
+        <h2>A web adaptation of the Digital Wallet Simulator.</h2>
+      </div>
+      <p>
+        This is an educational simulation. It does not connect to real banking systems,
+        payment gateways or real money. The Node.js server reads and writes wallet data
+        to the single project file <code>data.json</code>. Browser localStorage is not used as a second wallet database.
+      </p>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container footer-inner">
+      <div><strong>Digital Wallet Simulator</strong><small>Simulation only · No real money</small></div>
+      <span>HTML, CSS, JavaScript, Node.js & one local JSON data file</span>
+    </div>
+  </footer>
+</body>
+</html>
