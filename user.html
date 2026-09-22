@@ -4,46 +4,47 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>My Wallet — Digital Wallet Simulator</title>
-  <meta name="description" content="Educational digital wallet simulator using one local JSON data file." />
+  <meta name="description" content="Digital wallet simulator using one local JSON data file." />
   <link rel="stylesheet" href="/css/style.css" />
   <link rel="stylesheet" href="/css/user.css" />
+  <script src="https://unpkg.com/lucide@0.468.0/dist/umd/lucide.js"></script>
 </head>
 <body class="app-page">
-  <div class="simulation-banner"><strong>SIMULATION MODE</strong><span>No real money or real payment gateway is used.</span></div>
   <div class="app-layout">
     <aside class="sidebar" id="sidebar">
       <div class="sidebar-top">
-        <a class="brand sidebar-brand" href="/user.html"><span class="brand-mark">◈</span><span>Digital Wallet</span></a>
+        <a class="brand sidebar-brand" href="/user.html"><span class="brand-mark"><i data-lucide="wallet-cards" aria-hidden="true"></i></span><span>Digital Wallet</span></a>
         <button class="icon-btn mobile-close" id="close-sidebar" aria-label="Close menu">×</button>
       </div>
       <nav class="sidebar-nav">
-        <button class="nav-item active" data-section="dashboard">🏠 <span>Dashboard</span></button>
-        <button class="nav-item" data-section="send">💸 <span>Send Money</span></button>
-        <button class="nav-item" data-section="receive">📥 <span>Receive</span></button>
-        <button class="nav-item" data-section="scan">📷 <span>Scan QR</span></button>
-        <button class="nav-item" data-section="transactions">📜 <span>Transactions</span></button>
-        <button class="nav-item" data-section="analytics">📊 <span>Analytics</span></button>
-        <button class="nav-item" data-section="budget">🎯 <span>Budget</span></button>
-        <button class="nav-item" data-section="contacts">👥 <span>Contacts</span></button>
-        <button class="nav-item" data-section="recurring">🔄 <span>Recurring</span></button>
-        <button class="nav-item" data-section="notifications">🔔 <span>Notifications</span><b id="notification-count" class="nav-badge hidden">0</b></button>
-        <button class="nav-item" data-section="profile">👤 <span>Profile & Settings</span></button>
+        <button class="nav-item active" data-section="dashboard"><i data-lucide="layout-dashboard" aria-hidden="true"></i><span>Dashboard</span></button>
+        <button class="nav-item" data-section="send"><i data-lucide="send" aria-hidden="true"></i><span>Send Money</span></button>
+        <button class="nav-item" data-section="receive"><i data-lucide="download" aria-hidden="true"></i><span>Receive</span></button>
+        <button class="nav-item" data-section="scan"><i data-lucide="scan-line" aria-hidden="true"></i><span>Scan QR</span></button>
+        <button class="nav-item" data-section="transactions"><i data-lucide="receipt-text" aria-hidden="true"></i><span>Transactions</span></button>
+        <button class="nav-item" data-section="analytics"><i data-lucide="chart-no-axes-combined" aria-hidden="true"></i><span>Analytics</span></button>
+        <button class="nav-item" data-section="budget"><i data-lucide="target" aria-hidden="true"></i><span>Budget</span></button>
+        <button class="nav-item" data-section="contacts"><i data-lucide="contact-round" aria-hidden="true"></i><span>Contacts</span></button>
+        <button class="nav-item" data-section="recurring"><i data-lucide="repeat-2" aria-hidden="true"></i><span>Recurring</span></button>
+        <button class="nav-item" data-section="notifications"><i data-lucide="bell" aria-hidden="true"></i><span>Notifications</span><b id="notification-count" class="nav-badge hidden">0</b></button>
+        <button class="nav-item" data-section="profile"><i data-lucide="user-round-cog" aria-hidden="true"></i><span>Profile & Settings</span></button>
       </nav>
       <div class="sidebar-bottom">
         <div class="wallet-mini">
           <span class="avatar" id="sidebar-avatar">U</span>
           <div><strong id="sidebar-name">User</strong><small id="sidebar-wallet-id">Wallet</small></div>
         </div>
-        <button class="nav-item logout-item" id="logout-btn">🚪 <span>Logout</span></button>
+        <button class="nav-item logout-item" id="logout-btn"><i data-lucide="log-out" aria-hidden="true"></i><span>Logout</span></button>
       </div>
     </aside>
 
+    <div class="sidebar-overlay" id="sidebar-overlay"></div>
     <main class="app-main">
       <header class="app-header">
-        <button class="icon-btn menu-trigger" id="open-sidebar" aria-label="Open menu">☰</button>
+        <button class="icon-btn menu-trigger" id="open-sidebar" aria-label="Open menu"><i data-lucide="menu" aria-hidden="true"></i></button>
         <div><span class="eyebrow" id="page-eyebrow">MY WALLET</span><h1 id="page-title">Dashboard</h1></div>
         <div class="header-actions">
-          <button class="icon-btn" data-section-jump="notifications" title="Notifications" aria-label="Notifications">🔔</button>
+          <button class="icon-btn" data-section-jump="notifications" title="Notifications" aria-label="Notifications"><i data-lucide="bell" aria-hidden="true"></i></button>
           <button class="user-pill" data-section-jump="profile">
             <span class="avatar" id="header-avatar">U</span>
             <span id="header-name">User</span>
@@ -62,9 +63,9 @@
             <div class="balance-actions">
               <button class="btn btn-light" id="deposit-btn">➕ Deposit</button>
               <button class="btn btn-light" id="withdraw-btn">➖ Withdraw</button>
-              <button class="btn btn-light" data-section-jump="send">💸 Send</button>
-              <button class="btn btn-light" data-section-jump="receive">📥 Receive</button>
-              <button class="btn btn-light" data-section-jump="scan">📷 Scan</button>
+              <button class="btn btn-light" data-section-jump="send"><i data-lucide="send" aria-hidden="true"></i>Send</button>
+              <button class="btn btn-light" data-section-jump="receive"><i data-lucide="download" aria-hidden="true"></i>Receive</button>
+              <button class="btn btn-light" data-section-jump="scan"><i data-lucide="scan-line" aria-hidden="true"></i>Scan</button>
             </div>
           </article>
           <article class="stat-card"><span>Income</span><strong id="income-value">₹0.00</strong><small>All received funds</small></article>
@@ -234,9 +235,9 @@
             <h3>Wallet security</h3>
             <p id="pin-status" class="muted">Checking wallet PIN status…</p>
             <form id="pin-form" class="form-grid">
-              <label id="old-pin-label">Current PIN<input id="old-pin" type="password" inputmode="numeric" maxlength="4" pattern="[0-9]{4}" /></label>
-              <label>New PIN<input id="new-pin" type="password" inputmode="numeric" maxlength="4" pattern="[0-9]{4}" required /></label>
-              <label>Confirm new PIN<input id="confirm-pin" type="password" inputmode="numeric" maxlength="4" pattern="[0-9]{4}" required /></label>
+              <label id="old-pin-label">Current PIN<div class="password-field"><input id="old-pin" type="password" inputmode="numeric" maxlength="4" pattern="[0-9]{4}" /><button class="password-toggle" type="button" data-toggle-password="old-pin" aria-label="Show PIN" title="Show PIN"><i data-lucide="eye" aria-hidden="true"></i></button></div></label>
+              <label>New PIN<div class="password-field"><input id="new-pin" type="password" inputmode="numeric" maxlength="4" pattern="[0-9]{4}" required /><button class="password-toggle" type="button" data-toggle-password="new-pin" aria-label="Show PIN" title="Show PIN"><i data-lucide="eye" aria-hidden="true"></i></button></div></label>
+              <label>Confirm new PIN<div class="password-field"><input id="confirm-pin" type="password" inputmode="numeric" maxlength="4" pattern="[0-9]{4}" required /><button class="password-toggle" type="button" data-toggle-password="confirm-pin" aria-label="Show PIN" title="Show PIN"><i data-lucide="eye" aria-hidden="true"></i></button></div></label>
               <button class="btn btn-secondary" type="submit">Update Wallet PIN</button>
             </form>
             <div id="pin-message" class="form-message hidden"></div>
@@ -244,9 +245,9 @@
               <h4>PIN recovery</h4>
               <p class="muted">Your PIN is locked. Use the account password to reset the wallet PIN.</p>
               <form id="pin-recovery-form" class="form-grid">
-                <label>Account password<input id="recovery-password" type="password" autocomplete="current-password" required /></label>
-                <label>New PIN<input id="recovery-pin" type="password" inputmode="numeric" maxlength="4" pattern="[0-9]{4}" required /></label>
-                <label>Confirm new PIN<input id="recovery-pin-confirm" type="password" inputmode="numeric" maxlength="4" pattern="[0-9]{4}" required /></label>
+                <label>Account password<div class="password-field"><input id="recovery-password" type="password" autocomplete="current-password" required /><button class="password-toggle" type="button" data-toggle-password="recovery-password" aria-label="Show password" title="Show password"><i data-lucide="eye" aria-hidden="true"></i></button></div></label>
+                <label>New PIN<div class="password-field"><input id="recovery-pin" type="password" inputmode="numeric" maxlength="4" pattern="[0-9]{4}" required /><button class="password-toggle" type="button" data-toggle-password="recovery-pin" aria-label="Show PIN" title="Show PIN"><i data-lucide="eye" aria-hidden="true"></i></button></div></label>
+                <label>Confirm new PIN<div class="password-field"><input id="recovery-pin-confirm" type="password" inputmode="numeric" maxlength="4" pattern="[0-9]{4}" required /><button class="password-toggle" type="button" data-toggle-password="recovery-pin-confirm" aria-label="Show PIN" title="Show PIN"><i data-lucide="eye" aria-hidden="true"></i></button></div></label>
                 <button class="btn btn-outline" type="submit">Reset Wallet PIN</button>
               </form>
               <div id="pin-recovery-message" class="form-message hidden"></div>
@@ -290,7 +291,7 @@
       <p id="transaction-pin-text" class="muted">Your 4-digit PIN is required for every money-moving transaction.</p>
       <div id="transaction-pin-summary" class="pin-summary"></div>
       <form id="transaction-pin-form" class="form-grid">
-        <label>Wallet PIN<input id="transaction-pin" type="password" inputmode="numeric" maxlength="4" pattern="[0-9]{4}" autocomplete="one-time-code" required autofocus /></label>
+        <label>Wallet PIN<div class="password-field"><input id="transaction-pin" type="password" inputmode="numeric" maxlength="4" pattern="[0-9]{4}" autocomplete="one-time-code" required autofocus /><button class="password-toggle" type="button" data-toggle-password="transaction-pin" aria-label="Show PIN" title="Show PIN"><i data-lucide="eye" aria-hidden="true"></i></button></div></label>
         <div id="transaction-pin-message" class="form-message hidden"></div>
         <button class="btn btn-primary" type="submit" id="transaction-pin-submit">Authorize transaction</button>
       </form>
@@ -303,7 +304,7 @@
       <h2>Enter your 4-digit PIN</h2>
       <p class="muted">Unlock the wallet to open your session. Transactions still ask for the PIN again.</p>
       <form id="unlock-form" class="form-grid">
-        <label>Wallet PIN<input id="unlock-pin" type="password" inputmode="numeric" maxlength="4" pattern="[0-9]{4}" required autofocus /></label>
+        <label>Wallet PIN<div class="password-field"><input id="unlock-pin" type="password" inputmode="numeric" maxlength="4" pattern="[0-9]{4}" required autofocus /><button class="password-toggle" type="button" data-toggle-password="unlock-pin" aria-label="Show PIN" title="Show PIN"><i data-lucide="eye" aria-hidden="true"></i></button></div></label>
         <div id="unlock-message" class="form-message hidden"></div>
         <button class="btn btn-primary" type="submit">Unlock Wallet</button>
       </form>
@@ -332,7 +333,7 @@
       <h2>Reset my simulation?</h2>
       <p class="muted">This sets your balance to ₹0 and removes your transactions, contacts, budgets, recurring payments and notifications. Your account and profile stay.</p>
       <form id="reset-simulation-form" class="form-grid">
-        <label>Account password<input id="reset-password" type="password" autocomplete="current-password" required /></label>
+        <label>Account password<div class="password-field"><input id="reset-password" type="password" autocomplete="current-password" required /><button class="password-toggle" type="button" data-toggle-password="reset-password" aria-label="Show password" title="Show password"><i data-lucide="eye" aria-hidden="true"></i></button></div></label>
         <label>Type RESET to confirm<input id="reset-confirm-text" required autocomplete="off" /></label>
         <div id="reset-simulation-message" class="form-message hidden"></div>
         <div class="modal-actions"><button class="btn btn-outline" data-close-modal type="button">Cancel</button><button class="btn btn-danger" type="submit">Reset Simulation</button></div>
@@ -347,7 +348,7 @@
       <h2>Delete wallet account?</h2>
       <p class="muted">This permanently removes your account and all related records from <code>data.json</code>.</p>
       <form id="delete-account-form" class="form-grid">
-        <label>Account password<input id="delete-password" type="password" autocomplete="current-password" required /></label>
+        <label>Account password<div class="password-field"><input id="delete-password" type="password" autocomplete="current-password" required /><button class="password-toggle" type="button" data-toggle-password="delete-password" aria-label="Show password" title="Show password"><i data-lucide="eye" aria-hidden="true"></i></button></div></label>
         <div id="delete-account-message" class="form-message hidden"></div>
         <div class="modal-actions"><button class="btn btn-outline" data-close-modal type="button">Cancel</button><button class="btn btn-danger" type="submit">Delete Account</button></div>
       </form>

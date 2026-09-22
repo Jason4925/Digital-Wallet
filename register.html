@@ -6,28 +6,29 @@
   <title>Create Account — Digital Wallet</title>
   <link rel="stylesheet" href="/css/style.css" />
   <link rel="stylesheet" href="/css/auth.css" />
+  <script src="https://unpkg.com/lucide@0.468.0/dist/umd/lucide.js"></script>
 </head>
 <body class="auth-page">
-  <div class="simulation-banner"><strong>SIMULATION MODE</strong><span>No real money or real payment service is connected.</span></div>
   <main class="auth-shell">
-    <a class="brand auth-brand" href="/"><span class="brand-mark">◈</span><span>Digital Wallet</span></a>
+    <a class="brand auth-brand" href="/"><span class="brand-mark"><i data-lucide="wallet-cards" aria-hidden="true"></i></span><span>Digital Wallet</span></a>
     <section class="auth-card">
       <div class="auth-heading">
-        <div class="eyebrow">CREATE YOUR WALLET</div>
-        <h1>Start your simulated wallet</h1>
-        <p>Use any email-style login ID; it does not need to be a real mailbox and no email is sent.</p>
+        <div class="eyebrow">Create wallet</div>
+        <h1>Start your account</h1>
+        <p>Set up your demo wallet in seconds. Use any email-style login ID and a secure 4-digit wallet PIN.</p>
       </div>
       <form id="register-form" class="form-grid">
         <label>Name<input id="full-name" type="text" autocomplete="name" required placeholder="Your name" /></label>
         <label>Email<input id="email" type="email" autocomplete="off" autocapitalize="none" spellcheck="false" required placeholder="you@example.com" /></label>
-        <label>Password<input id="password" type="password" autocomplete="new-password" minlength="8" required placeholder="At least 8 characters" /></label>
-        <label>Confirm password<input id="confirm-password" type="password" autocomplete="new-password" minlength="8" required placeholder="Repeat password" /></label>
+        <label>Password<div class="password-field"><input id="password" type="password" autocomplete="new-password" minlength="8" required placeholder="At least 8 characters" /><button class="password-toggle" type="button" data-toggle-password="password" aria-label="Show password" title="Show password"><i data-lucide="eye" aria-hidden="true"></i></button></div></label>
+        <label>Confirm password<div class="password-field"><input id="confirm-password" type="password" autocomplete="new-password" minlength="8" required placeholder="Repeat password" /><button class="password-toggle" type="button" data-toggle-password="confirm-password" aria-label="Show password" title="Show password"><i data-lucide="eye" aria-hidden="true"></i></button></div></label>
         <div id="form-message" class="form-message hidden"></div>
         <button class="btn btn-primary btn-lg" type="submit">Create Account</button>
       </form>
       <div class="auth-footer">Already have an account? <a href="/login.html">Login</a></div>
     </section>
   </main>
+  <script>window.lucide?.createIcons();</script>
   <script type="module" src="/js/auth.js"></script>
 </body>
 </html>

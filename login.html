@@ -6,26 +6,27 @@
   <title>Login — Digital Wallet</title>
   <link rel="stylesheet" href="/css/style.css" />
   <link rel="stylesheet" href="/css/auth.css" />
+  <script src="https://unpkg.com/lucide@0.468.0/dist/umd/lucide.js"></script>
 </head>
 <body class="auth-page">
-  <div class="simulation-banner"><strong>SIMULATION MODE</strong><span>No real money or real payment service is connected.</span></div>
   <main class="auth-shell">
-    <a class="brand auth-brand" href="/"><span class="brand-mark">◈</span><span>Digital Wallet</span></a>
+    <a class="brand auth-brand" href="/"><span class="brand-mark"><i data-lucide="wallet-cards" aria-hidden="true"></i></span><span>Digital Wallet</span></a>
     <section class="auth-card">
       <div class="auth-heading">
-        <div class="eyebrow">Login</div>
-        <h1>WELCOME BACK</h1>
-        <p>Login to continue to your simulated digital wallet. Your wallet login ID is only used inside this project.</p>
+        <div class="eyebrow">Welcome back</div>
+        <h1>Access your wallet</h1>
+        <p>Sign in to continue managing your simulated account, transfers, and spending insights.</p>
       </div>
       <form id="login-form" class="form-grid">
         <label>Email<input id="email" type="email" autocomplete="off" autocapitalize="none" spellcheck="false" required placeholder="you@example.com" /></label>
-        <label>Password<input id="password" type="password" autocomplete="current-password" required placeholder="Your password" /></label>
+        <label>Password<div class="password-field"><input id="password" type="password" autocomplete="current-password" required placeholder="Your password" /><button class="password-toggle" type="button" data-toggle-password="password" aria-label="Show password" title="Show password"><i data-lucide="eye" aria-hidden="true"></i></button></div></label>
         <div id="form-message" class="form-message hidden"></div>
         <button class="btn btn-primary btn-lg" type="submit">Login</button>
       </form>
       <div class="auth-footer">New here? <a href="/register.html">Create an account</a></div>
     </section>
   </main>
+  <script>window.lucide?.createIcons();</script>
   <script type="module" src="/js/auth.js"></script>
 </body>
 </html>

@@ -7,12 +7,12 @@
   <meta name="description" content="A modern educational digital wallet simulator using one local data.json file." />
   <link rel="stylesheet" href="/css/style.css" />
   <link rel="stylesheet" href="/css/home.css" />
+  <script src="https://unpkg.com/lucide@0.468.0/dist/umd/lucide.js"></script>
 </head>
 <body>
-  <div class="simulation-banner"><strong>SIMULATION MODE</strong><span>No real money, banking connection or payment gateway.</span></div>
   <header class="site-header">
     <a class="brand" href="/">
-      <span class="brand-mark">◈</span>
+      <span class="brand-mark"><i data-lucide="wallet-cards" aria-hidden="true"></i></span>
       <span>Digital Wallet</span>
     </a>
     <nav class="top-nav">
@@ -28,7 +28,7 @@
     <section class="hero container">
       <div class="hero-copy">
         <div class="eyebrow">DIGITAL WALLET SIMULATOR</div>
-        <h1>Experience Secure Payments, Transfers and Wallet Management</h1>
+        <h1>Smart, secure wallet management for everyday spending.</h1>
         <p>
           Create a wallet, deposit and withdraw simulated funds, transfer money between users,
           pay with verified QR codes, protect every transaction with a PIN, track activity and understand spending.
@@ -78,15 +78,15 @@
         <p>Built around a single JSON data file, server-side validation, transaction authorization and useful reporting tools.</p>
       </div>
       <div class="feature-grid">
-        <article class="feature-card"><span>💰</span><h3>Wallet</h3><p>Balance, simulated deposits, withdrawals and wallet activity.</p></article>
-        <article class="feature-card"><span>↔</span><h3>Transfers</h3><p>Send simulated funds to verified registered wallet users.</p></article>
-        <article class="feature-card"><span>▦</span><h3>QR Payments</h3><p>Generate and validate versioned QR payment payloads before review.</p></article>
-        <article class="feature-card"><span>🔐</span><h3>PIN Security</h3><p>A 4-digit PIN is required for every money-moving transaction.</p></article>
-        <article class="feature-card"><span>📜</span><h3>Transactions</h3><p>Search, filter, sort, date-range and export transaction history.</p></article>
-        <article class="feature-card"><span>📊</span><h3>Analytics</h3><p>Track monthly income, expenses, net flow, categories and top recipients.</p></article>
-        <article class="feature-card"><span>🎯</span><h3>Budgets</h3><p>Set category limits with remaining-balance and warning indicators.</p></article>
-        <article class="feature-card"><span>👥</span><h3>Contacts</h3><p>Save verified recipients and mark frequent recipients as favorites.</p></article>
-        <article class="feature-card"><span>🔄</span><h3>Recurring Payments</h3><p>Create recurring entries and run them manually with transaction PIN authorization.</p></article>
+        <article class="feature-card"><i data-lucide="wallet-cards" aria-hidden="true"></i><h3>Wallet</h3><p>Balance, simulated deposits, withdrawals and wallet activity.</p></article>
+        <article class="feature-card"><i data-lucide="arrow-left-right" aria-hidden="true"></i><h3>Transfers</h3><p>Send simulated funds to verified registered wallet users.</p></article>
+        <article class="feature-card"><i data-lucide="qr-code" aria-hidden="true"></i><h3>QR Payments</h3><p>Generate and validate versioned QR payment payloads before review.</p></article>
+        <article class="feature-card"><i data-lucide="shield-check" aria-hidden="true"></i><h3>PIN Security</h3><p>A 4-digit PIN is required for every money-moving transaction.</p></article>
+        <article class="feature-card"><i data-lucide="receipt-text" aria-hidden="true"></i><h3>Transactions</h3><p>Search, filter, sort, date-range and export transaction history.</p></article>
+        <article class="feature-card"><i data-lucide="chart-no-axes-combined" aria-hidden="true"></i><h3>Analytics</h3><p>Track monthly income, expenses, net flow, categories and top recipients.</p></article>
+        <article class="feature-card"><i data-lucide="target" aria-hidden="true"></i><h3>Budgets</h3><p>Set category limits with remaining-balance and warning indicators.</p></article>
+        <article class="feature-card"><i data-lucide="contact-round" aria-hidden="true"></i><h3>Contacts</h3><p>Save verified recipients and mark frequent recipients as favorites.</p></article>
+        <article class="feature-card"><i data-lucide="repeat-2" aria-hidden="true"></i><h3>Recurring Payments</h3><p>Create recurring entries and run them manually with transaction PIN authorization.</p></article>
       </div>
     </section>
 
@@ -111,7 +111,7 @@
         <h2>A web adaptation of the Digital Wallet Simulator.</h2>
       </div>
       <p>
-        This is an simulation. It does not connect to real banking systems,
+        This is a simulation. It does not connect to real banking systems,
         payment gateways or real money. The Node.js server reads and writes wallet data
         to the single project file <code>data.json</code>. Browser localStorage is not used as a second wallet database.
       </p>
@@ -124,5 +124,8 @@
       <span>Learn, explore and manage your digital wallet securely.</br>A safe local simulation for practicing payments, transfers and budgeting.</span>
     </div>
   </footer>
+  <script>
+    window.lucide?.createIcons();
+  </script>
 </body>
 </html>

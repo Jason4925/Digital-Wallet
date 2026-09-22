@@ -131,15 +131,36 @@ function emptyState(icon, title, text, buttonHtml = "") {
   return `<div class="empty-content"><div class="empty-icon">${icon}</div><strong>${escapeHtml(title)}</strong><p>${escapeHtml(text)}</p>${buttonHtml}</div>`;
 }
 
+function refreshIcons() {
+  window.lucide?.createIcons();
+}
+
+function setupPasswordToggles() {
+  $$('[data-toggle-password]').forEach(button => {
+    button.addEventListener("click", () => {
+      const input = document.getElementById(button.dataset.togglePassword);
+      if (!input) return;
+      const visible = input.type === "text";
+      input.type = visible ? "password" : "text";
+      const label = input.inputMode === "numeric" ? "PIN" : "password";
+      button.setAttribute("aria-label", `${visible ? "Show" : "Hide"} ${label}`);
+      button.title = `${visible ? "Show" : "Hide"} ${label}`;
+      button.innerHTML = `<i data-lucide="${visible ? "eye" : "eye-off"}" aria-hidden="true"></i>`;
+      refreshIcons();
+    });
+  });
+}
+
 async function init() {
   const { data, error } = await db.auth.getSession();
   if (error || !data?.session) {
-    location.href = "/login.html";
+    location.href = "/login.html?expired=1";
     return;
   }
   state.user = data.session.user;
   setupNavigation();
   setupForms();
+  setupPasswordToggles();
   setupTheme();
   await loadAll();
   await ensureWalletPin();
@@ -149,8 +170,12 @@ async function init() {
 function setupNavigation() {
   $$(".nav-item[data-section]").forEach(btn => btn.addEventListener("click", () => switchSection(btn.dataset.section)));
   $$('[data-section-jump]').forEach(btn => btn.addEventListener("click", () => switchSection(btn.dataset.sectionJump)));
+  history.pushState({ walletPage: true, section: "dashboard" }, "", location.href);
+  history.pushState({ walletPage: true, section: "dashboard", guard: true }, "", location.href);
+  window.addEventListener("popstate", handleHistoryNavigation);
   $("#open-sidebar")?.addEventListener("click", () => $("#sidebar")?.classList.add("open"));
   $("#close-sidebar")?.addEventListener("click", () => $("#sidebar")?.classList.remove("open"));
+  $("#sidebar-overlay")?.addEventListener("click", () => $("#sidebar")?.classList.remove("open"));
   $("#logout-btn")?.addEventListener("click", signOut);
   $$(".modal-close, [data-close-modal]").forEach(btn => btn.addEventListener("click", () => {
     const modal = btn.closest(".modal-backdrop");
@@ -158,7 +183,23 @@ function setupNavigation() {
   }));
 }
 
-function switchSection(section) {
+function handleHistoryNavigation(event) {
+  const section = event.state?.walletPage ? event.state.section : "dashboard";
+  switchSection(section, { updateHistory: false });
+  if (section === "dashboard") {
+    history.pushState({ walletPage: true, section: "dashboard", guard: true }, "", location.href);
+  }
+}
+
+function switchSection(section, { updateHistory = true } = {}) {
+  if (updateHistory) {
+    if (section === "dashboard") {
+      history.replaceState({ walletPage: true, section: "dashboard" }, "", location.href);
+      history.pushState({ walletPage: true, section: "dashboard", guard: true }, "", location.href);
+    } else {
+      history.replaceState({ walletPage: true, section }, "", location.href);
+    }
+  }
   state.activeSection = section;
   $$(".nav-item[data-section]").forEach(button => button.classList.toggle("active", button.dataset.section === section));
   $$(".view-section").forEach(view => view.classList.toggle("active", view.id === `section-${section}`));
@@ -189,7 +230,7 @@ async function loadAll() {
 
   for (const response of [profileRes, walletRes, transactionsRes, contactsRes, budgetsRes, recurringRes, notificationsRes]) {
     if (response.error?.code === "AUTH_REQUIRED") {
-      location.href = "/login.html";
+      location.href = "/login.html?expired=1";
       return;
     }
   }
@@ -215,6 +256,7 @@ async function loadAll() {
   renderRecurring();
   renderNotifications();
   renderAnalytics();
+  refreshIcons();
   await loadPinStatus();
 }
 
@@ -301,7 +343,7 @@ function renderDashboard() {
   const recent = state.transactions.slice().sort((a, b) => new Date(b.created_at) - new Date(a.created_at)).slice(0, 6);
   const recentEl = $("#recent-transactions");
   recentEl.className = recent.length ? "transaction-list" : "transaction-list empty-state";
-  recentEl.innerHTML = recent.length ? recent.map(transactionRowHtml).join("") : emptyState("📭", "No transactions yet", "Your simulated wallet activity will appear here after your first transaction.", `<button class="btn btn-primary btn-sm" data-section-jump="send">Send money</button>`);
+  recentEl.innerHTML = recent.length ? recent.map(transactionRowHtml).join("") : emptyState('<i data-lucide="inbox"></i>', "No transactions yet", "Your simulated wallet activity will appear here after your first transaction.", `<button class="btn btn-primary btn-sm" data-section-jump="send">Send money</button>`);
   $$('[data-tx]', recentEl).forEach(button => button.addEventListener("click", () => showReceipt(button.dataset.tx)));
   $$('[data-section-jump]', recentEl).forEach(button => button.addEventListener("click", () => switchSection(button.dataset.sectionJump)));
   renderMiniCategoryChart();
@@ -360,13 +402,13 @@ function renderTransactions() {
   }
   const list = filteredTransactions();
   if (!list.length) {
-    container.innerHTML = emptyState("🔎", "No matching transactions", "Change the filters or date range to see more activity.");
+    container.innerHTML = emptyState('<i data-lucide="search-x"></i>', "No matching transactions", "Change the filters or date range to see more activity.");
     return;
   }
   container.innerHTML = `<table class="transaction-table"><thead><tr><th>Date</th><th>Reference</th><th>Type</th><th>Counterparty</th><th>Category</th><th>Amount</th><th>Status</th><th></th></tr></thead><tbody>
     ${list.map(tx => {
       const incoming = isIncome(tx);
-      return `<tr><td>${escapeHtml(dateText(tx.created_at))}</td><td><code>${escapeHtml(tx.reference_id || tx.id.slice(0, 8))}</code></td><td>${escapeHtml(tx.type.replaceAll("_", " "))}</td><td>${escapeHtml(personLabel(tx))}</td><td>${escapeHtml(tx.category || "Other")}</td><td class="${incoming ? "income" : "expense"}">${incoming ? "+" : "-"}${money(tx.amount)}</td><td><span class="status-badge status-${transactionStatusClass(tx.status)}">${escapeHtml(tx.status || "completed")}</span></td><td><button class="table-action" data-tx="${escapeHtml(tx.id)}">Receipt</button></td></tr>`;
+      return `<tr><td data-label="Date">${escapeHtml(dateText(tx.created_at))}</td><td data-label="Reference"><code>${escapeHtml(tx.reference_id || tx.id.slice(0, 8))}</code></td><td data-label="Type">${escapeHtml(tx.type.replaceAll("_", " "))}</td><td data-label="Counterparty">${escapeHtml(personLabel(tx))}</td><td data-label="Category">${escapeHtml(tx.category || "Other")}</td><td data-label="Amount" class="${incoming ? "income" : "expense"}">${incoming ? "+" : "-"}${money(tx.amount)}</td><td data-label="Status"><span class="status-badge status-${transactionStatusClass(tx.status)}">${escapeHtml(tx.status || "completed")}</span></td><td><button class="table-action" data-tx="${escapeHtml(tx.id)}">Receipt</button></td></tr>`;
     }).join("")}
   </tbody></table>`;
   $$('[data-tx]', container).forEach(button => button.addEventListener("click", () => showReceipt(button.dataset.tx)));
@@ -685,7 +727,7 @@ function renderBudgets() {
   const element = $("#budget-list");
   if (!state.budgets.length) {
     element.className = "budget-list empty-state";
-    element.innerHTML = emptyState("🎯", "No budgets yet", "Create a monthly category limit to track your simulated spending.");
+    element.innerHTML = emptyState('<i data-lucide="target"></i>', "No budgets yet", "Create a monthly category limit to track your simulated spending.");
     return;
   }
   element.className = "budget-list";
@@ -729,7 +771,7 @@ async function saveContact(event) {
 function renderContacts() {
   const element = $("#contacts-list");
   element.className = state.contacts.length ? "contact-list" : "contact-list empty-state";
-  element.innerHTML = state.contacts.length ? state.contacts.map(contact => `<div class="contact-item"><div class="contact-head"><div><strong>${escapeHtml(contact.nickname || contact.wallet_id)}</strong><small class="muted" style="display:block">${escapeHtml(contact.wallet_id)}</small></div><button class="favorite-btn ${contact.favorite ? "active" : ""}" data-favorite-contact="${escapeHtml(contact.id)}" aria-label="${contact.favorite ? "Remove favorite" : "Add favorite"}">${contact.favorite ? "★" : "☆"}</button></div><div class="contact-actions"><button class="btn btn-outline btn-sm" data-quick-send="${escapeHtml(contact.wallet_id)}">Send</button><button class="table-action" data-delete-contact="${escapeHtml(contact.id)}">Remove</button></div></div>`).join("") : emptyState("👥", "No contacts yet", "Save a verified wallet recipient here for faster transfers.", `<button class="btn btn-primary btn-sm" data-section-jump="send">Send money</button>`);
+  element.innerHTML = state.contacts.length ? state.contacts.map(contact => `<div class="contact-item"><div class="contact-head"><div><strong>${escapeHtml(contact.nickname || contact.wallet_id)}</strong><small class="muted" style="display:block">${escapeHtml(contact.wallet_id)}</small></div><button class="favorite-btn ${contact.favorite ? "active" : ""}" data-favorite-contact="${escapeHtml(contact.id)}" aria-label="${contact.favorite ? "Remove favorite" : "Add favorite"}">${contact.favorite ? "★" : "☆"}</button></div><div class="contact-actions"><button class="btn btn-outline btn-sm" data-quick-send="${escapeHtml(contact.wallet_id)}">Send</button><button class="table-action" data-delete-contact="${escapeHtml(contact.id)}">Remove</button></div></div>`).join("") : emptyState('<i data-lucide="contact-round"></i>', "No contacts yet", "Save a verified wallet recipient here for faster transfers.", `<button class="btn btn-primary btn-sm" data-section-jump="send">Send money</button>`);
   $$('[data-section-jump]', element).forEach(button => button.addEventListener("click", () => switchSection(button.dataset.sectionJump)));
   $$('[data-quick-send]', element).forEach(button => button.addEventListener("click", () => { switchSection("send"); $("#transfer-recipient").value = button.dataset.quickSend; }));
   $$('[data-delete-contact]', element).forEach(button => button.addEventListener("click", async () => {
@@ -768,7 +810,7 @@ async function saveRecurring(event) {
 function renderRecurring() {
   const element = $("#recurring-list");
   element.className = state.recurring.length ? "recurring-list" : "recurring-list empty-state";
-  element.innerHTML = state.recurring.length ? state.recurring.map(item => `<div class="recurring-item"><div class="recurring-head"><strong>${escapeHtml(item.title)}</strong><span>${money(item.amount)}</span></div><small class="muted">${escapeHtml(item.frequency)} · ${escapeHtml(item.category)} · next ${escapeHtml(dateText(item.next_run_at))}</small><div class="recurring-actions"><button class="btn btn-secondary" data-run-recurring="${escapeHtml(item.id)}" ${item.active ? "" : "disabled"}>Run now</button><button class="table-action" data-delete-recurring="${escapeHtml(item.id)}">Delete</button></div></div>`).join("") : emptyState("🔄", "No recurring payments yet", "Add a recurring item, then run it manually as a simulated scheduled payment.");
+  element.innerHTML = state.recurring.length ? state.recurring.map(item => `<div class="recurring-item"><div class="recurring-head"><strong>${escapeHtml(item.title)}</strong><span>${money(item.amount)}</span></div><small class="muted">${escapeHtml(item.frequency)} · ${escapeHtml(item.category)} · next ${escapeHtml(dateText(item.next_run_at))}</small><div class="recurring-actions"><button class="btn btn-secondary" data-run-recurring="${escapeHtml(item.id)}" ${item.active ? "" : "disabled"}>Run now</button><button class="table-action" data-delete-recurring="${escapeHtml(item.id)}">Delete</button></div></div>`).join("") : emptyState('<i data-lucide="repeat-2"></i>', "No recurring payments yet", "Add a recurring item, then run it manually as a simulated scheduled payment.");
   $$('[data-run-recurring]', element).forEach(button => button.addEventListener("click", () => {
     const item = state.recurring.find(candidate => candidate.id === button.dataset.runRecurring);
     if (!item) return;
@@ -796,7 +838,7 @@ function renderNotifications() {
   $("#notification-count").classList.toggle("hidden", unread === 0);
   const element = $("#notifications-list");
   element.className = state.notifications.length ? "notification-list" : "notification-list empty-state";
-  element.innerHTML = state.notifications.length ? state.notifications.map(notification => `<div class="notification-item ${notification.is_read ? "" : "unread"}"><div class="notification-head"><strong>${escapeHtml(notification.title)}</strong><small>${escapeHtml(dateText(notification.created_at))}</small></div><p>${escapeHtml(notification.message)}</p>${!notification.is_read ? `<button class="table-action" data-read-notification="${escapeHtml(notification.id)}">Mark read</button>` : ""}</div>`).join("") : emptyState("🔔", "No notifications", "Wallet and account updates will appear here.");
+  element.innerHTML = state.notifications.length ? state.notifications.map(notification => `<div class="notification-item ${notification.is_read ? "" : "unread"}"><div class="notification-head"><strong>${escapeHtml(notification.title)}</strong><small>${escapeHtml(dateText(notification.created_at))}</small></div><p>${escapeHtml(notification.message)}</p>${!notification.is_read ? `<button class="table-action" data-read-notification="${escapeHtml(notification.id)}">Mark read</button>` : ""}</div>`).join("") : emptyState('<i data-lucide="bell-off"></i>', "No notifications", "Wallet and account updates will appear here.");
   $$('[data-read-notification]', element).forEach(button => button.addEventListener("click", async () => {
     const result = await db.update("notifications", { is_read: true }, [{ column: "id", op: "eq", value: button.dataset.readNotification }]);
     if (result.error) toast(friendlyError(result.error), "error"); else await loadAll();
@@ -915,14 +957,19 @@ async function unlockWallet(event) {
 }
 
 function setupTheme() {
-  document.body.classList.remove("dark");
+  const isDark = localStorage.getItem("digital-wallet-theme") === "dark";
+  document.body.classList.toggle("dark", isDark);
+  $("#theme-toggle")?.setAttribute("aria-pressed", String(isDark));
 }
 
 function toggleTheme() {
-  document.body.classList.toggle("dark");
+  const isDark = document.body.classList.toggle("dark");
+  localStorage.setItem("digital-wallet-theme", isDark ? "dark" : "light");
+  $("#theme-toggle")?.setAttribute("aria-pressed", String(isDark));
 }
 
 async function signOut() {
+  if (!window.confirm("Are you sure you want to log out?")) return;
   await db.auth.signOut();
   state.walletUnlocked = false;
   state.pendingTransaction = null;

@@ -10,6 +10,27 @@ function showMessage(text, type = "error") {
   msg.className = `form-message ${type}`;
 }
 
+function setupPasswordToggles() {
+  document.querySelectorAll("[data-toggle-password]").forEach(button => {
+    button.addEventListener("click", () => {
+      const input = document.getElementById(button.dataset.togglePassword);
+      if (!input) return;
+      const visible = input.type === "text";
+      input.type = visible ? "password" : "text";
+      button.setAttribute("aria-label", `${visible ? "Show" : "Hide"} password`);
+      button.title = `${visible ? "Show" : "Hide"} password`;
+      button.innerHTML = `<i data-lucide="${visible ? "eye" : "eye-off"}" aria-hidden="true"></i>`;
+      window.lucide?.createIcons();
+    });
+  });
+}
+
+setupPasswordToggles();
+
+if (new URLSearchParams(location.search).has("expired")) {
+  showMessage("Your session expired. Sign in again to continue.");
+}
+
 function readableAuthError(error) {
   const message = error?.message || "";
   if (message.toLowerCase().includes("rate limit")) {
@@ -29,15 +50,17 @@ if (loginForm) {
   redirectIfAlreadySignedIn();
   loginForm.addEventListener("submit", async (e) => {
     e.preventDefault();
+    const submitButton = loginForm.querySelector("button[type=submit]");
     const email = document.querySelector("#email").value.trim().toLowerCase();
     const password = document.querySelector("#password").value;
 
     if (!email || !password) {
-      showMessage("Enter your dummy email and password.");
+      showMessage("Enter your email and password.");
       return;
     }
 
     try {
+      if (submitButton) submitButton.disabled = true;
       showMessage("Signing in…", "success");
       const { error } = await db.auth.signInWithPassword({
         email,
@@ -45,7 +68,7 @@ if (loginForm) {
       });
 
       if (error) {
-        showMessage("Invalid dummy email or password.");
+        showMessage("Invalid email or password.");
         return;
       }
 
@@ -53,6 +76,8 @@ if (loginForm) {
     } catch (error) {
       console.error(error);
       showMessage("Unable to sign in. Check your wallet ID and password.");
+    } finally {
+      if (submitButton) submitButton.disabled = false;
     }
   });
 }
