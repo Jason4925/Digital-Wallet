@@ -646,7 +646,20 @@ async function verifySecret(value, stored) {
 }
 
 await access(path.join(root, "package.json"));
-const vite = await createViteServer({ server: { middlewareMode: true, hmr: false, cors: false }, appType: "mpa" });
+// const vite = await createViteServer({ server: { middlewareMode: true, hmr: false, cors: false }, appType: "mpa" });
+const allowedHosts = [
+  "localhost",
+  process.env.RENDER_EXTERNAL_HOSTNAME
+].filter(Boolean);
+
+const vite = await createViteServer({
+  server: {
+    middlewareMode: true,
+    hmr: false,
+    allowedHosts
+  },
+  appType: "mpa"
+});
 const server = createServer(async (request, response) => {
   try {
     const url = new URL(request.url || "/", `http://${request.headers.host || "localhost"}`);
@@ -673,7 +686,7 @@ const server = createServer(async (request, response) => {
 });
 
 server.listen(port, "0.0.0.0", async () => {
-  console.log(`Digital Wallet running at http://localhost:${port}`);
+  console.log(`Digital Wallet running on port ${port}`);
   console.log("Storage: Supabase PostgreSQL (data.json is migration/backup data only).");
   console.log("Authentication: dummy email identifier + password (no email delivery).");
   try { await startRealtime(); }
