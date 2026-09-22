@@ -33,8 +33,8 @@ if (new URLSearchParams(location.search).has("expired")) {
 
 function readableAuthError(error) {
   const message = error?.message || "";
-  if (message.toLowerCase().includes("rate limit")) {
-    return "This wallet ID is temporarily unavailable. Wait a moment and try a different ID.";
+  if (message.toLowerCase().includes("network") || message.toLowerCase().includes("fetch")) {
+    return "Unable to reach the wallet server. Check the server URL and Supabase environment variables.";
   }
   return message || "Unable to create the wallet account.";
 }

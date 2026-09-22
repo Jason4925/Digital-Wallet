@@ -22,6 +22,9 @@ const state = {
   scanner: null,
   walletUnlocked: false,
   pinStatus: null,
+  realtimeSource: null,
+  realtimeRefreshTimer: null,
+  realtimeLoading: false,
   charts: {}
 };
 
@@ -67,12 +70,21 @@ function dateText(value) {
   return Number.isNaN(date.getTime()) ? "Invalid date" : new Intl.DateTimeFormat("en-IN", { dateStyle: "medium", timeStyle: "short" }).format(date);
 }
 
+function counterpartyWallet(tx) {
+  if (tx.type === "transfer") return tx.sender_id === state.user.id ? (tx.receiver_wallet_id || tx.counterparty_wallet_id) : (tx.sender_wallet_id || tx.counterparty_wallet_id);
+  return tx.counterparty_wallet_id || tx.sender_wallet_id || tx.receiver_wallet_id || "";
+}
+
 function personLabel(tx) {
-  if (tx.counterparty_name) return tx.counterparty_name;
   if (tx.type === "deposit") return "Wallet deposit";
   if (tx.type === "withdrawal") return "Cash withdrawal";
   if (tx.type === "recurring_payment") return tx.note || "Recurring payment";
-  return tx.sender_id === state.user.id ? (tx.receiver_wallet_id || "Sent transfer") : (tx.sender_wallet_id || "Received transfer");
+  if (tx.type === "transfer") {
+    return tx.sender_id === state.user.id
+      ? (tx.receiver_name || tx.counterparty_name || tx.receiver_wallet_id || "Sent transfer")
+      : (tx.sender_name || tx.sender_wallet_id || "Received transfer");
+  }
+  return tx.counterparty_name || counterpartyWallet(tx) || "Transaction";
 }
 
 function isIncome(tx) {
@@ -162,6 +174,7 @@ async function init() {
   setupForms();
   setupPasswordToggles();
   setupTheme();
+  setupRealtime();
   await loadAll();
   await ensureWalletPin();
   if (state.profile) await renderMyQr();
@@ -215,6 +228,41 @@ function switchSection(section, { updateHistory = true } = {}) {
   $("#sidebar")?.classList.remove("open");
   if (section === "scan") startScanner();
   else if (state.scanner) stopScanner();
+}
+
+function setupRealtime() {
+  if (!window.EventSource || state.realtimeSource) return;
+  const source = new EventSource("/api/realtime", { withCredentials: true });
+  state.realtimeSource = source;
+
+  source.addEventListener("wallet-change", () => {
+    clearTimeout(state.realtimeRefreshTimer);
+    state.realtimeRefreshTimer = setTimeout(async () => {
+      if (state.realtimeLoading) return;
+      state.realtimeLoading = true;
+      try {
+        await loadAll();
+        if (state.profile) await renderMyQr();
+      } finally {
+        state.realtimeLoading = false;
+      }
+    }, 120);
+  });
+
+  source.addEventListener("connected", () => {
+    console.info("Wallet realtime connected.");
+  });
+
+  source.onerror = () => {
+    // EventSource automatically reconnects. No credentials are stored client-side.
+    console.warn("Wallet realtime connection interrupted; browser will reconnect automatically.");
+  };
+}
+
+function closeRealtime() {
+  clearTimeout(state.realtimeRefreshTimer);
+  state.realtimeSource?.close();
+  state.realtimeSource = null;
 }
 
 async function loadAll() {
@@ -374,7 +422,7 @@ function filteredTransactions() {
   const to = $("#transaction-to")?.value || "";
 
   if (search) {
-    list = list.filter(tx => [tx.id, tx.reference_id, tx.note, tx.counterparty_wallet_id, tx.sender_wallet_id, tx.receiver_wallet_id, tx.counterparty_name, tx.category, tx.type]
+    list = list.filter(tx => [tx.id, tx.reference_id, tx.note, counterpartyWallet(tx), tx.sender_wallet_id, tx.receiver_wallet_id, tx.counterparty_name, tx.sender_name, tx.receiver_name, tx.category, tx.type]
       .some(value => String(value || "").toLowerCase().includes(search)));
   }
   if (kind === "income") list = list.filter(isIncome);
@@ -479,7 +527,7 @@ function renderAnalytics() {
 
   const payees = {};
   state.transactions.filter(tx => tx.sender_id === state.user.id && tx.type === "transfer").forEach(tx => {
-    const label = tx.counterparty_name || tx.counterparty_wallet_id || "Unknown";
+    const label = tx.receiver_name || tx.counterparty_name || tx.receiver_wallet_id || "Unknown";
     payees[label] = (payees[label] || 0) + Number(tx.amount);
   });
   const topPayees = Object.entries(payees).sort((a, b) => b[1] - a[1]).slice(0, 8);
@@ -970,6 +1018,7 @@ function toggleTheme() {
 
 async function signOut() {
   if (!window.confirm("Are you sure you want to log out?")) return;
+  closeRealtime();
   await db.auth.signOut();
   state.walletUnlocked = false;
   state.pendingTransaction = null;
@@ -1002,7 +1051,7 @@ async function showReceipt(id) {
   const transaction = state.transactions.find(item => item.id === id);
   if (!transaction) return;
   const incoming = isIncome(transaction);
-  $("#receipt-content").innerHTML = `<div class="receipt-box"><div class="eyebrow">DIGITAL WALLET SIMULATOR</div><h2>Payment Receipt</h2><p class="receipt-status status-${transactionStatusClass(transaction.status)}">${escapeHtml(transaction.status || "completed")}</p><h2>${incoming ? "+" : "-"}${money(transaction.amount)}</h2><div class="receipt-row"><span>Reference</span><strong>${escapeHtml(transaction.reference_id || "—")}</strong></div><div class="receipt-row"><span>Transaction ID</span><strong>${escapeHtml(transaction.id)}</strong></div><div class="receipt-row"><span>Type</span><strong>${escapeHtml(transaction.type.replaceAll("_", " "))}</strong></div><div class="receipt-row"><span>Counterparty</span><strong>${escapeHtml(personLabel(transaction))}</strong></div><div class="receipt-row"><span>Wallet ID</span><strong>${escapeHtml(transaction.counterparty_wallet_id || transaction.sender_wallet_id || transaction.receiver_wallet_id || "—")}</strong></div><div class="receipt-row"><span>Category</span><strong>${escapeHtml(transaction.category || "Other")}</strong></div><div class="receipt-row"><span>Note</span><strong>${escapeHtml(transaction.note || "—")}</strong></div><div class="receipt-row"><span>Date</span><strong>${escapeHtml(dateText(transaction.created_at))}</strong></div><p class="receipt-disclaimer">Simulation only — no real money was transferred.</p></div>`;
+  $("#receipt-content").innerHTML = `<div class="receipt-box"><div class="eyebrow">DIGITAL WALLET SIMULATOR</div><h2>Payment Receipt</h2><p class="receipt-status status-${transactionStatusClass(transaction.status)}">${escapeHtml(transaction.status || "completed")}</p><h2>${incoming ? "+" : "-"}${money(transaction.amount)}</h2><div class="receipt-row"><span>Reference</span><strong>${escapeHtml(transaction.reference_id || "—")}</strong></div><div class="receipt-row"><span>Transaction ID</span><strong>${escapeHtml(transaction.id)}</strong></div><div class="receipt-row"><span>Type</span><strong>${escapeHtml(transaction.type.replaceAll("_", " "))}</strong></div><div class="receipt-row"><span>Counterparty</span><strong>${escapeHtml(personLabel(transaction))}</strong></div><div class="receipt-row"><span>Wallet ID</span><strong>${escapeHtml(counterpartyWallet(transaction) || "—")}</strong></div><div class="receipt-row"><span>Category</span><strong>${escapeHtml(transaction.category || "Other")}</strong></div><div class="receipt-row"><span>Note</span><strong>${escapeHtml(transaction.note || "—")}</strong></div><div class="receipt-row"><span>Date</span><strong>${escapeHtml(dateText(transaction.created_at))}</strong></div><p class="receipt-disclaimer">Simulation only — no real money was transferred.</p></div>`;
   $("#receipt-modal").classList.remove("hidden");
 }
 

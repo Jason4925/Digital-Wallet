@@ -1,77 +1,21 @@
-// async function request(path, options = {}) {
-//   let response;
-//   try {
-//     response = await fetch(path, {
-//       ...options,
-//       credentials: "same-origin",
-//       headers: { "Content-Type": "application/json", ...(options.headers || {}) }
-//     });
-//   } catch {
-//     return { data: null, error: { code: "NETWORK_ERROR", message: "The wallet server could not be reached." } };
-//   }
-
-//   let result;
-//   try {
-//     result = await response.json();
-//   } catch {
-//     return { data: null, error: { code: "INVALID_RESPONSE", message: "The wallet server returned an invalid response." } };
-//   }
-
-//   if (!response.ok && !result.error) {
-//     result.error = { code: `HTTP_${response.status}`, message: "The wallet request could not be completed." };
-//   }
-//   return result;
-// }
-
-// const db = {
-//   auth: {
-//     getSession: () => request("/api/auth/session", { method: "GET", headers: {} }),
-//     signInWithPassword: ({ email, password }) => request("/api/auth/signin", {
-//       method: "POST",
-//       body: JSON.stringify({ email, password })
-//     }),
-//     signUp: ({ email, password, options = {} }) => request("/api/auth/signup", {
-//       method: "POST",
-//       body: JSON.stringify({ email, password, full_name: options.data?.full_name })
-//     }),
-//     signOut: () => request("/api/auth/signout", { method: "POST" })
-//   },
-//   get: (table, query = {}) => request("/api/data/query", {
-//     method: "POST",
-//     body: JSON.stringify({ table, ...query })
-//   }),
-//   insert: (table, row) => request("/api/data/mutate", {
-//     method: "POST",
-//     body: JSON.stringify({ table, action: "insert", rows: row })
-//   }),
-//   update: (table, values, filters = []) => request("/api/data/mutate", {
-//     method: "POST",
-//     body: JSON.stringify({ table, action: "update", values, filters })
-//   }),
-//   delete: (table, filters = []) => request("/api/data/mutate", {
-//     method: "POST",
-//     body: JSON.stringify({ table, action: "delete", filters })
-//   }),
-//   upsert: (table, row) => request("/api/data/mutate", {
-//     method: "POST",
-//     body: JSON.stringify({ table, action: "upsert", row })
-//   }),
-//   rpc: (name, params = {}) => request("/api/rpc", {
-//     method: "POST",
-//     body: JSON.stringify({ name, params })
-//   })
-// };
-
-// export { db };
-
-
 async function request(url, options = {}) {
-  const response = await fetch(url, {
-    credentials: "same-origin",
-    cache: "no-store",
-    headers: { "Content-Type": "application/json", ...(options.headers || {}) },
-    ...options
-  });
+  let response;
+  try {
+    response = await fetch(url, {
+      credentials: "same-origin",
+      cache: "no-store",
+      headers: { "Content-Type": "application/json", ...(options.headers || {}) },
+      ...options
+    });
+  } catch (error) {
+    return {
+      data: null,
+      error: {
+        code: "NETWORK_ERROR",
+        message: "Unable to reach the wallet server. Check your deployment and Supabase configuration."
+      }
+    };
+  }
 
   let body = null;
   try {
