@@ -1,158 +1,172 @@
-import { db } from "./data-api.js";
+// async function request(path, options = {}) {
+//   let response;
+//   try {
+//     response = await fetch(path, {
+//       ...options,
+//       credentials: "same-origin",
+//       headers: { "Content-Type": "application/json", ...(options.headers || {}) }
+//     });
+//   } catch {
+//     return { data: null, error: { code: "NETWORK_ERROR", message: "The wallet server could not be reached." } };
+//   }
 
-const loginForm = document.querySelector("#login-form");
-const registerForm = document.querySelector("#register-form");
-const msg = document.querySelector("#form-message");
+//   let result;
+//   try {
+//     result = await response.json();
+//   } catch {
+//     return { data: null, error: { code: "INVALID_RESPONSE", message: "The wallet server returned an invalid response." } };
+//   }
 
-function showMessage(text, type = "error") {
-  if (!msg) return;
-  msg.textContent = text;
-  msg.className = `form-message ${type}`;
-}
+//   if (!response.ok && !result.error) {
+//     result.error = { code: `HTTP_${response.status}`, message: "The wallet request could not be completed." };
+//   }
+//   return result;
+// }
 
-function setupPasswordToggles() {
-  document.querySelectorAll("[data-toggle-password]").forEach(button => {
-    button.addEventListener("click", () => {
-      const input = document.getElementById(button.dataset.togglePassword);
-      if (!input) return;
-      const visible = input.type === "text";
-      input.type = visible ? "password" : "text";
-      button.setAttribute("aria-label", `${visible ? "Show" : "Hide"} password`);
-      button.title = `${visible ? "Show" : "Hide"} password`;
-      button.innerHTML = `<i data-lucide="${visible ? "eye" : "eye-off"}" aria-hidden="true"></i>`;
-      window.lucide?.createIcons();
-    });
+// const db = {
+//   auth: {
+//     getSession: () => request("/api/auth/session", { method: "GET", headers: {} }),
+//     signInWithPassword: ({ email, password }) => request("/api/auth/signin", {
+//       method: "POST",
+//       body: JSON.stringify({ email, password })
+//     }),
+//     signUp: ({ email, password, options = {} }) => request("/api/auth/signup", {
+//       method: "POST",
+//       body: JSON.stringify({ email, password, full_name: options.data?.full_name })
+//     }),
+//     signOut: () => request("/api/auth/signout", { method: "POST" })
+//   },
+//   get: (table, query = {}) => request("/api/data/query", {
+//     method: "POST",
+//     body: JSON.stringify({ table, ...query })
+//   }),
+//   insert: (table, row) => request("/api/data/mutate", {
+//     method: "POST",
+//     body: JSON.stringify({ table, action: "insert", rows: row })
+//   }),
+//   update: (table, values, filters = []) => request("/api/data/mutate", {
+//     method: "POST",
+//     body: JSON.stringify({ table, action: "update", values, filters })
+//   }),
+//   delete: (table, filters = []) => request("/api/data/mutate", {
+//     method: "POST",
+//     body: JSON.stringify({ table, action: "delete", filters })
+//   }),
+//   upsert: (table, row) => request("/api/data/mutate", {
+//     method: "POST",
+//     body: JSON.stringify({ table, action: "upsert", row })
+//   }),
+//   rpc: (name, params = {}) => request("/api/rpc", {
+//     method: "POST",
+//     body: JSON.stringify({ name, params })
+//   })
+// };
+
+// export { db };
+
+
+async function request(url, options = {}) {
+  const response = await fetch(url, {
+    credentials: "same-origin",
+    cache: "no-store",
+    headers: { "Content-Type": "application/json", ...(options.headers || {}) },
+    ...options
   });
-}
 
-setupPasswordToggles();
-
-if (new URLSearchParams(location.search).has("expired")) {
-  showMessage("Your session expired. Sign in again to continue.");
-}
-
-function readableAuthError(error) {
-  const message = error?.message || "";
-  if (message.toLowerCase().includes("rate limit")) {
-    return "This wallet ID is temporarily unavailable. Wait a moment and try a different ID.";
+  let body = null;
+  try {
+    body = await response.json();
+  } catch {
+    body = null;
   }
-  return message || "Unable to create the wallet account.";
-}
 
-async function redirectIfAlreadySignedIn() {
-  const { data: { session } } = await db.auth.getSession();
-  if (session && (location.pathname.endsWith("login.html") || location.pathname.endsWith("register.html"))) {
-    location.href = "/user.html";
-  }
-}
-
-if (loginForm) {
-  redirectIfAlreadySignedIn();
-  loginForm.addEventListener("submit", async (e) => {
-    e.preventDefault();
-    const submitButton = loginForm.querySelector("button[type=submit]");
-    const email = document.querySelector("#email").value.trim().toLowerCase();
-    const password = document.querySelector("#password").value;
-
-    if (!email || !password) {
-      showMessage("Enter your email and password.");
-      return;
-    }
-
-    try {
-      if (submitButton) submitButton.disabled = true;
-      showMessage("Signing in…", "success");
-      const { error } = await db.auth.signInWithPassword({
-        email,
-        password
-      });
-
-      if (error) {
-        showMessage("Invalid email or password.");
-        return;
+  if (!response.ok) {
+    const error = body?.error || {};
+    return {
+      data: body?.data ?? null,
+      error: {
+        code: error.code || `HTTP_${response.status}`,
+        message: error.message || "The request could not be completed."
       }
+    };
+  }
 
-      location.href = "/user.html";
-    } catch (error) {
-      console.error(error);
-      showMessage("Unable to sign in. Check your wallet ID and password.");
-    } finally {
-      if (submitButton) submitButton.disabled = false;
-    }
-  });
+  return { data: body?.data ?? body, error: null };
 }
 
-if (registerForm) {
-  redirectIfAlreadySignedIn();
-  registerForm.addEventListener("submit", async (e) => {
-    e.preventDefault();
-    const submitButton = registerForm.querySelector("button[type=submit]");
-
-    const fullName = document.querySelector("#full-name").value.trim();
-    const email = document.querySelector("#email").value.trim().toLowerCase();
-    const password = document.querySelector("#password").value;
-    const confirmPassword = document.querySelector("#confirm-password").value;
-
-    if (!fullName) {
-      showMessage("Enter your name.");
-      return;
-    }
-
-    if (!email) {
-      showMessage("Invent an email-style ID such as alex@wallet.local. It does not need to be real.");
-      return;
-    }
-
-    if (!email.includes("@")) {
-      showMessage("Use an email-style ID such as alex@wallet.local.");
-      return;
-    }
-
-    if (password !== confirmPassword) {
-      showMessage("Passwords do not match.");
-      return;
-    }
-
-    if (password.length < 8) {
-      showMessage("Password must be at least 8 characters.");
-      return;
-    }
-
-    try {
-      if (submitButton) submitButton.disabled = true;
-      showMessage("Creating your wallet…", "success");
-
-      const { data, error } = await db.auth.signUp({
+const auth = {
+  async getSession() {
+    return request("/api/auth/session", { method: "GET", headers: {} });
+  },
+  async signUp({ email, password, options = {} }) {
+    return request("/api/auth/signup", {
+      method: "POST",
+      body: JSON.stringify({
         email,
         password,
-        options: {
-          data: {
-            full_name: fullName,
-            email_demo: true
-          }
-        }
-      });
+        full_name: options.data?.full_name || ""
+      })
+    });
+  },
+  async signInWithPassword({ email, password }) {
+    return request("/api/auth/signin", {
+      method: "POST",
+      body: JSON.stringify({ email, password })
+    });
+  },
+  async signOut() {
+    return request("/api/auth/signout", { method: "POST", body: "{}" });
+  }
+};
 
-      if (error) {
-        showMessage(readableAuthError(error));
-        return;
-      }
-
-      if (data.session) {
-        location.href = "/user.html";
-        return;
-      }
-
-      showMessage(
-        "Account created. Your wallet ID is ready to use.",
-        "success"
-      );
-      registerForm.reset();
-    } catch (error) {
-      console.error(error);
-      showMessage(readableAuthError(error));
-    } finally {
-      if (submitButton) submitButton.disabled = false;
-    }
+async function get(table, { filters = [], any = [], sorts = [], limit = null, single = false } = {}) {
+  return request("/api/data/query", {
+    method: "POST",
+    body: JSON.stringify({ table, filters, any, sorts, limit, single })
   });
 }
+
+async function insert(table, rows) {
+  return request("/api/data/mutate", {
+    method: "POST",
+    body: JSON.stringify({ action: "insert", table, rows })
+  });
+}
+
+async function update(table, values, filters = []) {
+  return request("/api/data/mutate", {
+    method: "POST",
+    body: JSON.stringify({ action: "update", table, values, filters })
+  });
+}
+
+async function upsert(table, row, conflictKeys = []) {
+  return request("/api/data/mutate", {
+    method: "POST",
+    body: JSON.stringify({ action: "upsert", table, row, conflictKeys })
+  });
+}
+
+async function remove(table, filters = []) {
+  return request("/api/data/mutate", {
+    method: "POST",
+    body: JSON.stringify({ action: "delete", table, filters })
+  });
+}
+
+async function rpc(name, params = {}) {
+  return request("/api/rpc", {
+    method: "POST",
+    body: JSON.stringify({ name, params })
+  });
+}
+
+export const db = {
+  auth,
+  get,
+  insert,
+  update,
+  upsert,
+  delete: remove,
+  rpc
+};
