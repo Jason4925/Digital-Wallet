@@ -18,11 +18,12 @@
         <p>Sign in to continue managing your simulated account, transfers, and spending insights.</p>
       </div>
       <form id="login-form" class="form-grid">
-        <label>Email<input id="email" type="email" autocomplete="off" autocapitalize="none" spellcheck="false" required placeholder="you@example.com" /></label>
+        <label>Wallet login ID<input id="email" type="email" autocomplete="username" autocapitalize="none" spellcheck="false" required placeholder="you@example.com" /></label>
         <label>Password<div class="password-field"><input id="password" type="password" autocomplete="current-password" required placeholder="Your password" /><button class="password-toggle" type="button" data-toggle-password="password" aria-label="Show password" title="Show password"><i data-lucide="eye" aria-hidden="true"></i></button></div></label>
         <div id="form-message" class="form-message hidden"></div>
         <button class="btn btn-primary btn-lg" type="submit">Login</button>
       </form>
+      <p class="auth-help"><strong>Forgot your password?</strong> This educational simulator does not send email. Create a new demo account, or ask the project owner to reset the local account.</p>
       <div class="auth-footer">New here? <a href="/register.html">Create an account</a></div>
     </section>
   </main>

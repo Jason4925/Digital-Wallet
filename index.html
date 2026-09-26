@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Digital Wallet Simulator</title>
-  <meta name="description" content="A modern educational digital wallet simulator using one local data.json file." />
+  <meta name="description" content="A modern educational digital wallet simulator backed by Supabase." />
   <link rel="stylesheet" href="/css/style.css" />
   <link rel="stylesheet" href="/css/home.css" />
   <script src="https://unpkg.com/lucide@0.468.0/dist/umd/lucide.js"></script>
@@ -40,7 +40,7 @@
           <a class="btn btn-outline btn-lg" href="#features">Learn More</a>
         </div>
         <div class="hero-meta">
-          <span>✓ One data file: data.json</span>
+          <span>✓ Data stored in Supabase</span>
           <span>✓ PIN on every transaction</span>
           <span>✓ No real money involved</span>
         </div>
@@ -112,8 +112,8 @@
       </div>
       <p>
         This is a simulation. It does not connect to real banking systems,
-        payment gateways or real money. The Node.js server reads and writes wallet data
-        to the single project file <code>data.json</code>. Browser localStorage is not used as a second wallet database.
+        payment gateways or real money. The Node.js server uses Supabase PostgreSQL as the runtime source of truth,
+        with realtime updates delivered through the backend. Browser localStorage is not used as a second wallet database.
       </p>
     </section>
   </main>

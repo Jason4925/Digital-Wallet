@@ -75,7 +75,7 @@ if (loginForm) {
       location.href = "/user.html";
     } catch (error) {
       console.error(error);
-      showMessage("Unable to sign in. Check your wallet ID and password.");
+      showMessage("Unable to sign in. Check your wallet login ID and password.");
     } finally {
       if (submitButton) submitButton.disabled = false;
     }
@@ -143,10 +143,7 @@ if (registerForm) {
         return;
       }
 
-      showMessage(
-        "Account created. Your wallet ID is ready to use.",
-        "success"
-      );
+      showMessage("Account created. Sign in to confirm your profile, create a wallet PIN, and optionally add a simulated starting balance.", "success");
       registerForm.reset();
     } catch (error) {
       console.error(error);

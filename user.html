@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>My Wallet — Digital Wallet Simulator</title>
-  <meta name="description" content="Digital wallet simulator using one local JSON data file." />
+  <meta name="description" content="A simulated digital wallet for learning transfers, QR payments, and budgeting." />
   <link rel="stylesheet" href="/css/style.css" />
   <link rel="stylesheet" href="/css/user.css" />
   <script src="https://unpkg.com/lucide@0.468.0/dist/umd/lucide.js"></script>
@@ -17,16 +17,20 @@
         <button class="icon-btn mobile-close" id="close-sidebar" aria-label="Close menu">×</button>
       </div>
       <nav class="sidebar-nav">
+        <span class="nav-group-label">Home</span>
         <button class="nav-item active" data-section="dashboard"><i data-lucide="layout-dashboard" aria-hidden="true"></i><span>Dashboard</span></button>
         <button class="nav-item" data-section="send"><i data-lucide="send" aria-hidden="true"></i><span>Send Money</span></button>
         <button class="nav-item" data-section="receive"><i data-lucide="download" aria-hidden="true"></i><span>Receive</span></button>
         <button class="nav-item" data-section="scan"><i data-lucide="scan-line" aria-hidden="true"></i><span>Scan QR</span></button>
+        <span class="nav-group-label">Activity</span>
         <button class="nav-item" data-section="transactions"><i data-lucide="receipt-text" aria-hidden="true"></i><span>Transactions</span></button>
+        <button class="nav-item" data-section="notifications"><i data-lucide="bell" aria-hidden="true"></i><span>Notifications</span><b id="notification-count" class="nav-badge hidden">0</b></button>
+        <span class="nav-group-label">Planning</span>
         <button class="nav-item" data-section="analytics"><i data-lucide="chart-no-axes-combined" aria-hidden="true"></i><span>Analytics</span></button>
         <button class="nav-item" data-section="budget"><i data-lucide="target" aria-hidden="true"></i><span>Budget</span></button>
-        <button class="nav-item" data-section="contacts"><i data-lucide="contact-round" aria-hidden="true"></i><span>Contacts</span></button>
         <button class="nav-item" data-section="recurring"><i data-lucide="repeat-2" aria-hidden="true"></i><span>Recurring</span></button>
-        <button class="nav-item" data-section="notifications"><i data-lucide="bell" aria-hidden="true"></i><span>Notifications</span><b id="notification-count" class="nav-badge hidden">0</b></button>
+        <span class="nav-group-label">Account</span>
+        <button class="nav-item" data-section="contacts"><i data-lucide="contact-round" aria-hidden="true"></i><span>Contacts</span></button>
         <button class="nav-item" data-section="profile"><i data-lucide="user-round-cog" aria-hidden="true"></i><span>Profile & Settings</span></button>
       </nav>
       <div class="sidebar-bottom">
@@ -52,7 +56,8 @@
         </div>
       </header>
 
-      <div id="toast-container" class="toast-container"></div>
+      <div id="toast-container" class="toast-container" aria-live="polite" aria-atomic="true"></div>
+      <div id="app-status" class="app-status hidden" role="status"></div>
 
       <section class="view-section active" id="section-dashboard">
         <div class="dashboard-grid">
@@ -61,8 +66,8 @@
             <div class="big-balance" id="balance-value">₹0.00</div>
             <div class="wallet-id-line">Wallet ID <strong id="dashboard-wallet-id">—</strong><button class="text-btn" id="copy-wallet-id">Copy</button></div>
             <div class="balance-actions">
-              <button class="btn btn-light" id="deposit-btn">➕ Deposit</button>
-              <button class="btn btn-light" id="withdraw-btn">➖ Withdraw</button>
+              <button class="btn btn-light" id="deposit-btn"><i data-lucide="plus" aria-hidden="true"></i>Deposit</button>
+              <button class="btn btn-light" id="withdraw-btn"><i data-lucide="minus" aria-hidden="true"></i>Withdraw</button>
               <button class="btn btn-light" data-section-jump="send"><i data-lucide="send" aria-hidden="true"></i>Send</button>
               <button class="btn btn-light" data-section-jump="receive"><i data-lucide="download" aria-hidden="true"></i>Receive</button>
               <button class="btn btn-light" data-section-jump="scan"><i data-lucide="scan-line" aria-hidden="true"></i>Scan</button>
@@ -88,6 +93,7 @@
       <section class="view-section" id="section-send">
         <div class="section-title"><div><span class="eyebrow">WALLET OPERATION</span><h2>Send money</h2><p>Transfer simulated funds to another registered wallet. A PIN is required for every transfer.</p></div></div>
         <div class="form-panel">
+          <div class="flow-steps" aria-label="Transfer progress"><span class="active">1 <b>Recipient</b></span><i aria-hidden="true"></i><span>2 <b>Review</b></span><i aria-hidden="true"></i><span>3 <b>Authorize</b></span></div>
           <form id="transfer-form" class="form-grid two-col">
             <label>Recipient wallet ID<input id="transfer-recipient" required maxlength="13" placeholder="DW-XXXXXXXXXX" /></label>
             <label>Amount<input id="transfer-amount" type="number" min="0.01" max="1000000000" step="0.01" required placeholder="500" /></label>
@@ -95,7 +101,7 @@
             <label>Note<input id="transfer-note" maxlength="120" placeholder="Lunch, rent, gift..." /></label>
             <div class="quick-contacts span-2" id="quick-contacts"></div>
             <div id="transfer-message" class="form-message hidden span-2"></div>
-            <button class="btn btn-primary btn-lg span-2" type="submit">Continue to confirmation</button>
+            <button class="btn btn-primary btn-lg span-2" id="transfer-submit" type="submit">Continue to review</button>
           </form>
         </div>
       </section>
@@ -107,7 +113,7 @@
             <div id="my-qr-wrap" class="qr-wrap"><canvas id="my-qr"></canvas></div>
             <h3 id="receive-wallet-id">—</h3>
             <p id="receive-name">—</p>
-            <div class="inline-actions"><button class="btn btn-primary" id="download-qr">Download QR</button><button class="btn btn-outline" id="share-qr">Share</button></div>
+            <div class="inline-actions"><button class="btn btn-primary" id="copy-receive-wallet"><i data-lucide="copy" aria-hidden="true"></i>Copy wallet ID</button><button class="btn btn-outline" id="download-qr"><i data-lucide="download" aria-hidden="true"></i>Download QR</button><button class="btn btn-outline" id="share-qr"><i data-lucide="share-2" aria-hidden="true"></i>Share</button></div>
           </article>
           <article class="form-panel">
             <h3>Create a payment request</h3>
@@ -131,6 +137,7 @@
           </article>
           <article class="form-panel">
             <h3>Payment details</h3>
+            <p class="muted scan-help"><i data-lucide="camera" aria-hidden="true"></i>Allow camera access to scan. You can also paste a Digital Wallet QR payload below.</p>
             <label>QR payload<textarea id="qr-payload-input" rows="5" maxlength="2000" placeholder='{"app":"digital-wallet","version":2,"wallet_id":"DW-..."}'></textarea></label>
             <button class="btn btn-secondary full-width" id="parse-qr-btn">Parse & Verify QR</button>
             <div id="parsed-qr" class="parsed-qr hidden"></div>
@@ -160,9 +167,9 @@
           <article class="stat-card"><span>Top category</span><strong id="analytics-top-category">—</strong><small id="analytics-top-category-value">No expense yet</small></article>
         </div>
         <div class="analytics-grid">
-          <article class="panel-card chart-card"><div class="panel-head"><div><span class="eyebrow">MONTHLY</span><h3>Income vs expenses</h3></div></div><canvas id="monthly-chart" height="280"></canvas></article>
-          <article class="panel-card chart-card"><div class="panel-head"><div><span class="eyebrow">CATEGORIES</span><h3>Expense breakdown</h3></div></div><canvas id="category-chart" height="280"></canvas></article>
-          <article class="panel-card chart-card wide-chart"><div class="panel-head"><div><span class="eyebrow">TOP PAYEES</span><h3>Top recipients</h3></div></div><canvas id="payee-chart" height="250"></canvas></article>
+          <article class="panel-card chart-card"><div class="panel-head"><div><span class="eyebrow">MONTHLY</span><h3>Income vs expenses</h3></div></div><canvas id="monthly-chart" aria-label="Bar chart comparing monthly income and expenses" role="img" height="280"></canvas><p id="monthly-chart-summary" class="chart-summary"></p></article>
+          <article class="panel-card chart-card"><div class="panel-head"><div><span class="eyebrow">CATEGORIES</span><h3>Expense breakdown</h3></div></div><canvas id="category-chart" aria-label="Doughnut chart showing expense categories" role="img" height="280"></canvas><p id="category-chart-summary" class="chart-summary"></p></article>
+          <article class="panel-card chart-card wide-chart"><div class="panel-head"><div><span class="eyebrow">TOP PAYEES</span><h3>Top recipients</h3></div></div><canvas id="payee-chart" aria-label="Bar chart showing top payment recipients" role="img" height="250"></canvas><p id="payee-chart-summary" class="chart-summary"></p></article>
         </div>
       </section>
 
@@ -172,12 +179,13 @@
           <div class="form-panel">
             <h3>Add monthly budget</h3>
             <form id="budget-form" class="form-grid">
+              <label>Month<input id="budget-month" type="month" required /></label>
               <label>Category<select id="budget-category"></select></label>
               <label>Monthly limit<input id="budget-amount" type="number" min="0.01" max="1000000000" step="0.01" required placeholder="5000" /></label>
               <button class="btn btn-primary" type="submit">Save Budget</button>
             </form>
           </div>
-          <article class="panel-card"><div class="panel-head"><div><span class="eyebrow">CURRENT MONTH</span><h2>Budget progress</h2></div></div><div id="budget-list" class="budget-list empty-state">No budgets yet.</div></article>
+          <article class="panel-card"><div class="panel-head"><div><span class="eyebrow" id="budget-period-label">CURRENT MONTH</span><h2>Budget progress</h2></div></div><div id="budget-list" class="budget-list empty-state">No budgets yet.</div></article>
         </div>
       </section>
 
@@ -215,7 +223,7 @@
       </section>
 
       <section class="view-section" id="section-notifications">
-        <div class="section-title"><div><span class="eyebrow">UPDATES</span><h2>Notifications</h2><p>Payment, budget and account updates.</p></div><button class="btn btn-outline" id="mark-all-read">Mark all read</button></div>
+        <div class="section-title"><div><span class="eyebrow">UPDATES</span><h2>Notifications</h2><p>Payment, budget and account updates.</p></div><div class="section-actions"><select id="notification-filter" aria-label="Filter notifications"><option value="all">All updates</option><option value="unread">Unread only</option><option value="read">Read only</option></select><button class="btn btn-outline" id="mark-all-read">Mark all read</button></div></div>
         <div class="panel-card"><div id="notifications-list" class="notification-list empty-state">No notifications yet.</div></div>
       </section>
 
@@ -262,7 +270,7 @@
           </div>
           <div class="form-panel danger-panel">
             <h3>Account actions</h3>
-            <p class="muted">These actions are for the local simulator and affect the records stored in <code>data.json</code>.</p>
+            <p class="muted">These actions affect your simulated wallet data in Supabase. No real money is involved.</p>
             <div class="danger-actions">
               <button class="btn btn-outline" id="reset-simulation-btn">Reset My Simulation</button>
               <button class="btn btn-danger" id="delete-account-btn">Delete Account</button>
@@ -271,6 +279,32 @@
         </div>
       </section>
     </main>
+  </div>
+
+  <div class="modal-backdrop hidden" id="onboarding-modal" role="dialog" aria-modal="true" aria-labelledby="onboarding-title">
+    <div class="modal onboarding-modal">
+      <div class="eyebrow">WELCOME TO YOUR SIMULATED WALLET</div>
+      <h2 id="onboarding-title">Set up your wallet</h2>
+      <p class="muted">A short setup gets your profile, wallet PIN, and optional starting balance ready. This app never moves real money.</p>
+      <div class="onboarding-progress"><span class="active">1</span><i></i><span>2</span><i></i><span>3</span></div>
+      <form id="onboarding-profile-form" class="form-grid onboarding-step">
+        <label>Confirm your name<input id="onboarding-name" maxlength="80" required /></label>
+        <div class="form-message hidden" id="onboarding-profile-message" aria-live="polite"></div>
+        <button class="btn btn-primary" type="submit">Continue to wallet PIN</button>
+      </form>
+      <form id="onboarding-pin-form" class="form-grid onboarding-step hidden">
+        <label>Create a 4-digit wallet PIN<div class="password-field"><input id="onboarding-pin" type="password" inputmode="numeric" maxlength="4" pattern="[0-9]{4}" required /><button class="password-toggle" type="button" data-toggle-password="onboarding-pin" aria-label="Show PIN" title="Show PIN"><i data-lucide="eye" aria-hidden="true"></i></button></div></label>
+        <label>Confirm wallet PIN<div class="password-field"><input id="onboarding-pin-confirm" type="password" inputmode="numeric" maxlength="4" pattern="[0-9]{4}" required /><button class="password-toggle" type="button" data-toggle-password="onboarding-pin-confirm" aria-label="Show PIN" title="Show PIN"><i data-lucide="eye" aria-hidden="true"></i></button></div></label>
+        <div class="form-message hidden" id="onboarding-pin-message" aria-live="polite"></div>
+        <button class="btn btn-primary" type="submit">Continue to balance</button>
+      </form>
+      <form id="onboarding-balance-form" class="form-grid onboarding-step hidden">
+        <label>Optional starting balance<input id="onboarding-balance" type="number" min="0" max="1000000000" step="0.01" placeholder="Leave blank to start at ₹0" /></label>
+        <p class="muted onboarding-note">You can deposit simulated funds later from the dashboard.</p>
+        <div class="form-message hidden" id="onboarding-balance-message" aria-live="polite"></div>
+        <button class="btn btn-primary" type="submit">Open my dashboard</button>
+      </form>
+    </div>
   </div>
 
   <div class="modal-backdrop hidden" id="confirm-modal">

@@ -19,6 +19,8 @@ const state = {
   transferDraft: null,
   cashOperation: null,
   pendingTransaction: null,
+  onboardingPin: null,
+  budgetMonth: todayMonth(),
   scanner: null,
   walletUnlocked: false,
   pinStatus: null,
@@ -139,6 +141,21 @@ function setButtonBusy(button, busy, busyText = "Processing…") {
   }
 }
 
+function setAppLoading(loading) {
+  document.body.classList.toggle("is-loading", loading);
+  $(".app-main")?.setAttribute("aria-busy", String(loading));
+  $("#app-status")?.classList.toggle("hidden", !loading);
+  if (loading) $("#app-status").textContent = "Refreshing wallet data…";
+}
+
+function showAppError(message = "We could not refresh your wallet data.") {
+  const status = $("#app-status");
+  if (!status) return;
+  status.className = "app-status error";
+  status.innerHTML = `<span>${escapeHtml(message)}</span><button class="text-btn" id="retry-load">Retry</button>`;
+  $("#retry-load")?.addEventListener("click", () => loadAll());
+}
+
 function emptyState(icon, title, text, buttonHtml = "") {
   return `<div class="empty-content"><div class="empty-icon">${icon}</div><strong>${escapeHtml(title)}</strong><p>${escapeHtml(text)}</p>${buttonHtml}</div>`;
 }
@@ -194,6 +211,7 @@ function setupNavigation() {
     const modal = btn.closest(".modal-backdrop");
     modal?.classList.add("hidden");
   }));
+  $$(".nav-item[data-section]").forEach(button => button.setAttribute("aria-current", button.classList.contains("active") ? "page" : "false"));
 }
 
 function handleHistoryNavigation(event) {
@@ -214,7 +232,11 @@ function switchSection(section, { updateHistory = true } = {}) {
     }
   }
   state.activeSection = section;
-  $$(".nav-item[data-section]").forEach(button => button.classList.toggle("active", button.dataset.section === section));
+  $$(".nav-item[data-section]").forEach(button => {
+    const active = button.dataset.section === section;
+    button.classList.toggle("active", active);
+    button.setAttribute("aria-current", active ? "page" : "false");
+  });
   $$(".view-section").forEach(view => view.classList.toggle("active", view.id === `section-${section}`));
   const titles = {
     dashboard: ["MY WALLET", "Dashboard"], send: ["WALLET OPERATION", "Send Money"], receive: ["RECEIVE", "My QR & wallet ID"],
@@ -266,15 +288,32 @@ function closeRealtime() {
 }
 
 async function loadAll() {
-  const [profileRes, walletRes, transactionsRes, contactsRes, budgetsRes, recurringRes, notificationsRes] = await Promise.all([
+  setAppLoading(true);
+  let responses;
+  try {
+    responses = await Promise.all([
     db.get("profiles", { filters: [{ column: "id", op: "eq", value: state.user.id }], single: true }),
     db.get("wallets", { filters: [{ column: "user_id", op: "eq", value: state.user.id }], single: true }),
     db.get("transactions", { any: [[{ column: "sender_id", op: "eq", value: state.user.id }], [{ column: "receiver_id", op: "eq", value: state.user.id }]], sorts: [{ column: "created_at", ascending: false }] }),
     db.get("contacts", { filters: [{ column: "owner_id", op: "eq", value: state.user.id }], sorts: [{ column: "favorite", ascending: false }, { column: "created_at", ascending: false }] }),
-    db.get("budgets", { filters: [{ column: "user_id", op: "eq", value: state.user.id }, { column: "month_start", op: "eq", value: todayMonth() }] }),
+    db.get("budgets", { filters: [{ column: "user_id", op: "eq", value: state.user.id }, { column: "month_start", op: "eq", value: state.budgetMonth }] }),
     db.get("recurring_payments", { filters: [{ column: "user_id", op: "eq", value: state.user.id }], sorts: [{ column: "created_at", ascending: false }] }),
     db.get("notifications", { filters: [{ column: "user_id", op: "eq", value: state.user.id }], sorts: [{ column: "created_at", ascending: false }], limit: 100 })
-  ]);
+    ]);
+  } catch (error) {
+    console.error(error);
+    setAppLoading(false);
+    showAppError();
+    return;
+  }
+
+  const [profileRes, walletRes, transactionsRes, contactsRes, budgetsRes, recurringRes, notificationsRes] = responses;
+  const failedResponse = responses.find(response => response.error && response.error.code !== "AUTH_REQUIRED");
+  if (failedResponse) {
+    setAppLoading(false);
+    showAppError(friendlyError(failedResponse.error));
+    return;
+  }
 
   for (const response of [profileRes, walletRes, transactionsRes, contactsRes, budgetsRes, recurringRes, notificationsRes]) {
     if (response.error?.code === "AUTH_REQUIRED") {
@@ -293,6 +332,7 @@ async function loadAll() {
 
   if (!state.profile || !state.wallet) {
     toast("Your wallet profile is not ready. Refresh the page and try again.", "error");
+    setAppLoading(false);
     return;
   }
 
@@ -306,6 +346,8 @@ async function loadAll() {
   renderAnalytics();
   refreshIcons();
   await loadPinStatus();
+  $("#app-status")?.classList.add("hidden");
+  setAppLoading(false);
 }
 
 function hydrateIdentity() {
@@ -329,10 +371,19 @@ function setupForms() {
   populateCategorySelect($("#budget-category"));
   populateCategorySelect($("#recurring-category"));
   populateCategorySelect($("#cash-category"));
+  $("#budget-month").value = state.budgetMonth.slice(0, 7);
   const categoryFilter = $("#transaction-category-filter");
   CATEGORIES.forEach(category => categoryFilter.insertAdjacentHTML("beforeend", `<option value="${escapeHtml(category)}">${escapeHtml(category)}</option>`));
 
   $("#copy-wallet-id")?.addEventListener("click", async () => {
+    try {
+      await navigator.clipboard.writeText(state.profile.wallet_id);
+      toast("Wallet ID copied.");
+    } catch {
+      toast("Clipboard access is unavailable in this browser.", "error");
+    }
+  });
+  $("#copy-receive-wallet")?.addEventListener("click", async () => {
     try {
       await navigator.clipboard.writeText(state.profile.wallet_id);
       toast("Wallet ID copied.");
@@ -358,6 +409,13 @@ function setupForms() {
   $("#transaction-sort")?.addEventListener("change", renderTransactions);
   $("#transaction-from")?.addEventListener("change", renderTransactions);
   $("#transaction-to")?.addEventListener("change", renderTransactions);
+  $("#notification-filter")?.addEventListener("change", renderNotifications);
+  $("#budget-month")?.addEventListener("change", async event => {
+    const value = event.target.value;
+    if (!value) return;
+    state.budgetMonth = `${value}-01`;
+    await loadAll();
+  });
   $("#export-transactions")?.addEventListener("click", exportTransactionsCsv);
   $("#budget-form")?.addEventListener("submit", saveBudget);
   $("#contact-form")?.addEventListener("submit", saveContact);
@@ -373,6 +431,9 @@ function setupForms() {
   $("#delete-account-btn")?.addEventListener("click", () => $("#delete-account-modal")?.classList.remove("hidden"));
   $("#reset-simulation-form")?.addEventListener("submit", resetSimulation);
   $("#delete-account-form")?.addEventListener("submit", deleteAccount);
+  $("#onboarding-profile-form")?.addEventListener("submit", completeOnboardingProfile);
+  $("#onboarding-pin-form")?.addEventListener("submit", completeOnboardingPin);
+  $("#onboarding-balance-form")?.addEventListener("submit", completeOnboardingBalance);
 }
 
 function populateCategorySelect(select) {
@@ -531,6 +592,9 @@ function renderAnalytics() {
     payees[label] = (payees[label] || 0) + Number(tx.amount);
   });
   const topPayees = Object.entries(payees).sort((a, b) => b[1] - a[1]).slice(0, 8);
+  $("#monthly-chart-summary").textContent = `Six-month total: ${money(income.reduce((sum, value) => sum + value, 0))} income and ${money(expenses.reduce((sum, value) => sum + value, 0))} expenses.`;
+  $("#category-chart-summary").textContent = topCategory ? `Largest category: ${topCategory[0]} at ${money(topCategory[1])}.` : "No expense categories recorded this month.";
+  $("#payee-chart-summary").textContent = topPayees.length ? `Top recipient: ${topPayees[0][0]} at ${money(topPayees[0][1])}.` : "No recipients recorded yet.";
 
   ["monthly", "category", "payee"].forEach(key => state.charts[key]?.destroy());
   state.charts.monthly = new Chart($("#monthly-chart"), { type: "bar", data: { labels, datasets: [{ label: "Income", data: income }, { label: "Expenses", data: expenses }] }, options: { responsive: true } });
@@ -624,27 +688,37 @@ async function authorizeTransaction(event) {
 
 async function prepareTransfer(event) {
   event.preventDefault();
+  const submitButton = $("#transfer-submit");
+  setButtonBusy(submitButton, true, "Verifying recipient…");
+  updateTransferStep(1);
   const recipient = $("#transfer-recipient").value.trim().toUpperCase();
   const amount = Number($("#transfer-amount").value);
   const category = $("#transfer-category").value;
   const note = $("#transfer-note").value.trim();
-  if (!isValidWalletId(recipient)) return formMessage("transfer-message", "Wallet ID should look like DW-XXXXXXXXXX.");
-  if (!isValidAmount(amount)) return formMessage("transfer-message", "Enter a valid amount from ₹0.01 to ₹1,000,000,000.");
-  if (amount > Number(state.wallet.balance)) return formMessage("transfer-message", "Insufficient simulated balance.");
-  if (note.length > MAX_NOTE_LENGTH) return formMessage("transfer-message", `Note must be ${MAX_NOTE_LENGTH} characters or fewer.`);
+  if (!isValidWalletId(recipient)) { setButtonBusy(submitButton, false); return formMessage("transfer-message", "Wallet ID should look like DW-XXXXXXXXXX."); }
+  if (!isValidAmount(amount)) { setButtonBusy(submitButton, false); return formMessage("transfer-message", "Enter a valid amount from ₹0.01 to ₹1,000,000,000."); }
+  if (amount > Number(state.wallet.balance)) { setButtonBusy(submitButton, false); return formMessage("transfer-message", "Insufficient simulated balance."); }
+  if (note.length > MAX_NOTE_LENGTH) { setButtonBusy(submitButton, false); return formMessage("transfer-message", `Note must be ${MAX_NOTE_LENGTH} characters or fewer.`); }
 
   const lookup = await db.rpc("lookup_wallet", { p_wallet_id: recipient });
+  setButtonBusy(submitButton, false);
   if (lookup.error) return formMessage("transfer-message", friendlyError(lookup.error));
   if (!lookup.data || lookup.data.user_id === state.user.id) return formMessage("transfer-message", "That wallet cannot be used as the recipient.");
   state.transferDraft = { recipient, amount, category, note, recipientName: lookup.data.full_name };
   $("#transfer-preview").innerHTML = `<div><strong>Recipient</strong><span>${escapeHtml(lookup.data.full_name || "Wallet user")}</span></div><div><strong>Wallet ID</strong><span>${escapeHtml(recipient)}</span></div><div><strong>Amount</strong><span>${money(amount)}</span></div><div><strong>Category</strong><span>${escapeHtml(category)}</span></div><div><strong>Note</strong><span>${escapeHtml(note || "—")}</span></div><div class="verification-note">✓ Recipient wallet verified before confirmation.</div>`;
   $("#confirm-modal").classList.remove("hidden");
+  updateTransferStep(2);
+}
+
+function updateTransferStep(step) {
+  $$(".flow-steps span").forEach((item, index) => item.classList.toggle("active", index === step - 1));
 }
 
 function moveTransferToPin() {
   if (!state.transferDraft) return;
   const draft = state.transferDraft;
   $("#confirm-modal").classList.add("hidden");
+  updateTransferStep(3);
   openTransactionPin({
     title: "Authorize transfer",
     summary: `Send ${money(draft.amount)} to ${draft.recipientName || draft.recipient}`,
@@ -688,8 +762,9 @@ function downloadMyQr() {
 
 async function shareQr() {
   const payload = JSON.stringify({ app: "digital-wallet", version: 2, wallet_id: state.profile.wallet_id, name: state.profile.full_name, amount: null, note: null });
+  const shareText = `${state.profile.full_name || "Wallet user"} can receive a simulated payment at wallet ID ${state.profile.wallet_id}. No real money is involved.`;
   try {
-    if (navigator.share) await navigator.share({ title: "My Digital Wallet", text: payload });
+    if (navigator.share) await navigator.share({ title: "My Digital Wallet", text: shareText });
     else {
       await navigator.clipboard.writeText(payload);
       toast("QR payload copied.");
@@ -706,7 +781,10 @@ function startScanner() {
     $("#qr-payload-input").value = decodedText;
     parseQrInput();
     stopScanner();
-  }, () => {});
+  }, errorMessage => {
+    const help = $(".scan-help");
+    if (help && /permission|camera|secure/i.test(String(errorMessage))) help.textContent = "Camera access was unavailable. Paste a Digital Wallet QR payload below instead.";
+  });
 }
 
 function stopScanner() {
@@ -756,10 +834,12 @@ async function saveBudget(event) {
   const amount = Number($("#budget-amount").value);
   if (!CATEGORIES.includes(category)) return toast("Choose a valid category.", "error");
   if (!isValidAmount(amount)) return toast("Enter a valid budget amount.", "error");
-  const result = await db.upsert("budgets", { user_id: state.user.id, month_start: todayMonth(), category, amount }, ["user_id", "month_start", "category"]);
+  const month = $("#budget-month").value;
+  if (!month) return toast("Choose a budget month.", "error");
+  state.budgetMonth = `${month}-01`;
+  const result = await db.upsert("budgets", { user_id: state.user.id, month_start: state.budgetMonth, category, amount }, ["user_id", "month_start", "category"]);
   if (result.error) return toast(friendlyError(result.error), "error");
   toast(`${category} budget saved.`);
-  $("#budget-form").reset();
   await loadAll();
 }
 
@@ -773,6 +853,8 @@ function budgetState(spent, limit) {
 
 function renderBudgets() {
   const element = $("#budget-list");
+  $("#budget-month").value = state.budgetMonth.slice(0, 7);
+  $("#budget-period-label").textContent = new Intl.DateTimeFormat("en-IN", { month: "long", year: "numeric" }).format(new Date(`${state.budgetMonth}T00:00:00`)).toUpperCase();
   if (!state.budgets.length) {
     element.className = "budget-list empty-state";
     element.innerHTML = emptyState('<i data-lucide="target"></i>', "No budgets yet", "Create a monthly category limit to track your simulated spending.");
@@ -793,6 +875,7 @@ function renderBudgets() {
     return `<div class="budget-item"><div class="budget-head"><strong>${escapeHtml(budget.category)}</strong><span>${money(spent)} / ${money(limit)}</span></div><div class="progress-bar"><span class="${pct > 100 ? "over" : ""}" style="width:${visiblePct}%"></span></div><div class="budget-meta"><small class="${status.className}">${pct}% used · ${status.label}</small><strong class="${pct > 100 ? "expense" : "income"}">${pct > 100 ? `${money(spent - limit)} over` : `${money(remaining)} remaining`}</strong></div><div class="contact-actions"><button class="table-action" data-delete-budget="${escapeHtml(budget.id)}">Delete</button></div></div>`;
   }).join("");
   $$('[data-delete-budget]', element).forEach(button => button.addEventListener("click", async () => {
+    if (!window.confirm("Delete this budget? Its limit and progress will be removed.")) return;
     const result = await db.delete("budgets", [{ column: "id", op: "eq", value: button.dataset.deleteBudget }]);
     if (result.error) toast(friendlyError(result.error), "error"); else await loadAll();
   }));
@@ -819,10 +902,20 @@ async function saveContact(event) {
 function renderContacts() {
   const element = $("#contacts-list");
   element.className = state.contacts.length ? "contact-list" : "contact-list empty-state";
-  element.innerHTML = state.contacts.length ? state.contacts.map(contact => `<div class="contact-item"><div class="contact-head"><div><strong>${escapeHtml(contact.nickname || contact.wallet_id)}</strong><small class="muted" style="display:block">${escapeHtml(contact.wallet_id)}</small></div><button class="favorite-btn ${contact.favorite ? "active" : ""}" data-favorite-contact="${escapeHtml(contact.id)}" aria-label="${contact.favorite ? "Remove favorite" : "Add favorite"}">${contact.favorite ? "★" : "☆"}</button></div><div class="contact-actions"><button class="btn btn-outline btn-sm" data-quick-send="${escapeHtml(contact.wallet_id)}">Send</button><button class="table-action" data-delete-contact="${escapeHtml(contact.id)}">Remove</button></div></div>`).join("") : emptyState('<i data-lucide="contact-round"></i>', "No contacts yet", "Save a verified wallet recipient here for faster transfers.", `<button class="btn btn-primary btn-sm" data-section-jump="send">Send money</button>`);
+  element.innerHTML = state.contacts.length ? state.contacts.map(contact => `<div class="contact-item"><div class="contact-head"><div><strong>${escapeHtml(contact.nickname || contact.wallet_id)}</strong><small class="muted" style="display:block">${escapeHtml(contact.wallet_id)}</small></div><button class="favorite-btn ${contact.favorite ? "active" : ""}" data-favorite-contact="${escapeHtml(contact.id)}" aria-label="${contact.favorite ? "Remove favorite" : "Add favorite"}">${contact.favorite ? "★" : "☆"}</button></div><div class="contact-actions"><button class="btn btn-outline btn-sm" data-quick-send="${escapeHtml(contact.wallet_id)}">Send</button><button class="table-action" data-edit-contact="${escapeHtml(contact.id)}">Edit</button><button class="table-action" data-delete-contact="${escapeHtml(contact.id)}">Remove</button></div></div>`).join("") : emptyState('<i data-lucide="contact-round"></i>', "No contacts yet", "Save a verified wallet recipient here for faster transfers.", `<button class="btn btn-primary btn-sm" data-section-jump="send">Send money</button>`);
   $$('[data-section-jump]', element).forEach(button => button.addEventListener("click", () => switchSection(button.dataset.sectionJump)));
   $$('[data-quick-send]', element).forEach(button => button.addEventListener("click", () => { switchSection("send"); $("#transfer-recipient").value = button.dataset.quickSend; }));
+  $$('[data-edit-contact]', element).forEach(button => button.addEventListener("click", async () => {
+    const contact = state.contacts.find(item => item.id === button.dataset.editContact);
+    if (!contact) return;
+    const nickname = window.prompt("Contact nickname", contact.nickname || "");
+    if (nickname === null || nickname.trim() === contact.nickname) return;
+    if (nickname.trim().length > 40) return toast("Nickname must be 40 characters or fewer.", "error");
+    const result = await db.update("contacts", { nickname: nickname.trim() }, [{ column: "id", op: "eq", value: contact.id }]);
+    if (result.error) toast(friendlyError(result.error), "error"); else await loadAll();
+  }));
   $$('[data-delete-contact]', element).forEach(button => button.addEventListener("click", async () => {
+    if (!window.confirm("Remove this saved contact? Their wallet account will not be affected.")) return;
     const result = await db.delete("contacts", [{ column: "id", op: "eq", value: button.dataset.deleteContact }]);
     if (result.error) toast(friendlyError(result.error), "error"); else await loadAll();
   }));
@@ -875,7 +968,14 @@ function renderRecurring() {
     });
   }));
   $$('[data-delete-recurring]', element).forEach(button => button.addEventListener("click", async () => {
+    if (!window.confirm("Delete this recurring payment? Its schedule will be removed.")) return;
     const result = await db.delete("recurring_payments", [{ column: "id", op: "eq", value: button.dataset.deleteRecurring }]);
+    if (result.error) toast(friendlyError(result.error), "error"); else await loadAll();
+  }));
+  $$('[data-toggle-recurring]', element).forEach(button => button.addEventListener("click", async () => {
+    const item = state.recurring.find(candidate => candidate.id === button.dataset.toggleRecurring);
+    if (!item) return;
+    const result = await db.update("recurring_payments", { active: !item.active }, [{ column: "id", op: "eq", value: item.id }]);
     if (result.error) toast(friendlyError(result.error), "error"); else await loadAll();
   }));
 }
@@ -884,9 +984,11 @@ function renderNotifications() {
   const unread = state.notifications.filter(notification => !notification.is_read).length;
   $("#notification-count").textContent = unread;
   $("#notification-count").classList.toggle("hidden", unread === 0);
+  const filter = $("#notification-filter")?.value || "all";
+  const notifications = state.notifications.filter(notification => filter === "all" || (filter === "unread" ? !notification.is_read : notification.is_read));
   const element = $("#notifications-list");
-  element.className = state.notifications.length ? "notification-list" : "notification-list empty-state";
-  element.innerHTML = state.notifications.length ? state.notifications.map(notification => `<div class="notification-item ${notification.is_read ? "" : "unread"}"><div class="notification-head"><strong>${escapeHtml(notification.title)}</strong><small>${escapeHtml(dateText(notification.created_at))}</small></div><p>${escapeHtml(notification.message)}</p>${!notification.is_read ? `<button class="table-action" data-read-notification="${escapeHtml(notification.id)}">Mark read</button>` : ""}</div>`).join("") : emptyState('<i data-lucide="bell-off"></i>', "No notifications", "Wallet and account updates will appear here.");
+  element.className = notifications.length ? "notification-list" : "notification-list empty-state";
+  element.innerHTML = notifications.length ? notifications.map(notification => `<div class="notification-item ${notification.is_read ? "" : "unread"}"><div class="notification-head"><strong>${escapeHtml(notification.title)}</strong><small>${escapeHtml(dateText(notification.created_at))}</small></div><p>${escapeHtml(notification.message)}</p>${!notification.is_read ? `<button class="table-action" data-read-notification="${escapeHtml(notification.id)}">Mark read</button>` : ""}</div>`).join("") : emptyState('<i data-lucide="bell-off"></i>', filter === "all" ? "No notifications" : "No matching notifications", "Wallet and account updates will appear here.");
   $$('[data-read-notification]', element).forEach(button => button.addEventListener("click", async () => {
     const result = await db.update("notifications", { is_read: true }, [{ column: "id", op: "eq", value: button.dataset.readNotification }]);
     if (result.error) toast(friendlyError(result.error), "error"); else await loadAll();
@@ -969,8 +1071,7 @@ async function ensureWalletPin() {
   state.pinStatus = status || null;
   if (!status?.has_pin) {
     state.walletUnlocked = false;
-    switchSection("profile");
-    toast("Please set your 4-digit wallet PIN first.");
+    openOnboarding();
     return;
   }
   if (status.locked) {
@@ -981,6 +1082,72 @@ async function ensureWalletPin() {
   }
   $("#pin-modal").classList.remove("hidden");
   setTimeout(() => $("#unlock-pin")?.focus(), 50);
+}
+
+function openOnboarding() {
+  $("#onboarding-name").value = state.profile?.full_name || "";
+  $("#onboarding-modal")?.classList.remove("hidden");
+  $("#onboarding-name")?.focus();
+}
+
+function showOnboardingStep(step) {
+  $$(".onboarding-step").forEach((item, index) => item.classList.toggle("hidden", index !== step - 1));
+  $$(".onboarding-progress span").forEach((item, index) => item.classList.toggle("active", index === step - 1));
+  refreshIcons();
+}
+
+async function completeOnboardingProfile(event) {
+  event.preventDefault();
+  const name = $("#onboarding-name").value.trim();
+  if (!name || name.length > 80) return formMessage("onboarding-profile-message", "Enter your name to continue.");
+  const button = event.currentTarget.querySelector("button[type=submit]");
+  setButtonBusy(button, true, "Saving profile…");
+  const result = await db.update("profiles", { full_name: name }, [{ column: "id", op: "eq", value: state.user.id }]);
+  setButtonBusy(button, false);
+  if (result.error) return formMessage("onboarding-profile-message", friendlyError(result.error));
+  state.profile.full_name = name;
+  hydrateIdentity();
+  showOnboardingStep(2);
+  $("#onboarding-pin")?.focus();
+}
+
+async function completeOnboardingPin(event) {
+  event.preventDefault();
+  const pin = $("#onboarding-pin").value.trim();
+  const confirm = $("#onboarding-pin-confirm").value.trim();
+  if (!isValidPin(pin)) return formMessage("onboarding-pin-message", "PIN must be exactly 4 digits.");
+  if (pin !== confirm) return formMessage("onboarding-pin-message", "PINs do not match.");
+  const button = event.currentTarget.querySelector("button[type=submit]");
+  setButtonBusy(button, true, "Creating PIN…");
+  const result = await db.rpc("set_wallet_pin", { p_pin: pin });
+  setButtonBusy(button, false);
+  if (result.error) return formMessage("onboarding-pin-message", friendlyError(result.error));
+  state.onboardingPin = pin;
+  state.pinStatus = { has_pin: true, locked: false };
+  showOnboardingStep(3);
+  $("#onboarding-balance")?.focus();
+}
+
+async function completeOnboardingBalance(event) {
+  event.preventDefault();
+  const rawAmount = $("#onboarding-balance").value;
+  const amount = rawAmount === "" ? null : Number(rawAmount);
+  if (amount !== null && !isValidAmount(amount)) return formMessage("onboarding-balance-message", "Enter a valid starting balance or leave it blank.");
+  const button = event.currentTarget.querySelector("button[type=submit]");
+  setButtonBusy(button, true, amount === null ? "Opening dashboard…" : "Adding simulated funds…");
+  if (amount !== null) {
+    const result = await db.rpc("deposit_wallet", { p_amount: amount, p_category: "Income", p_note: "Starting balance" , p_pin: state.onboardingPin });
+    if (result.error) {
+      setButtonBusy(button, false);
+      return formMessage("onboarding-balance-message", friendlyError(result.error));
+    }
+  }
+  state.walletUnlocked = true;
+  state.onboardingPin = null;
+  $("#onboarding-modal")?.classList.add("hidden");
+  setButtonBusy(button, false);
+  await loadAll();
+  toast("Your wallet is ready.");
 }
 
 async function unlockWallet(event) {
